@@ -23,6 +23,37 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Configure Akka repository
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml << 'EOF'
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                                https://maven.apache.org/xsd/settings-1.0.0.xsd">
+            <profiles>
+              <profile>
+                <id>akka-repo</id>
+                <repositories>
+                  <repository>
+                    <id>akka-repository</id>
+                    <url>${{ secrets.AKKA_REPO_URL }}</url>
+                  </repository>
+                </repositories>
+                <pluginRepositories>
+                  <pluginRepository>
+                    <id>akka-plugin-repository</id>
+                    <url>${{ secrets.AKKA_REPO_URL }}</url>
+                  </pluginRepository>
+                </pluginRepositories>
+              </profile>
+            </profiles>
+            <activeProfiles>
+              <activeProfile>akka-repo</activeProfile>
+            </activeProfiles>
+          </settings>
+          EOF
+
       - name: Compile
         run: mvn compile
 
@@ -48,6 +79,37 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
+
+      - name: Configure Akka repository
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml << 'EOF'
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                                https://maven.apache.org/xsd/settings-1.0.0.xsd">
+            <profiles>
+              <profile>
+                <id>akka-repo</id>
+                <repositories>
+                  <repository>
+                    <id>akka-repository</id>
+                    <url>${{ secrets.AKKA_REPO_URL }}</url>
+                  </repository>
+                </repositories>
+                <pluginRepositories>
+                  <pluginRepository>
+                    <id>akka-plugin-repository</id>
+                    <url>${{ secrets.AKKA_REPO_URL }}</url>
+                  </pluginRepository>
+                </pluginRepositories>
+              </profile>
+            </profiles>
+            <activeProfiles>
+              <activeProfile>akka-repo</activeProfile>
+            </activeProfiles>
+          </settings>
+          EOF
 
       - name: Build container image
         run: mvn clean install -DskipTests -Ddocker.tag=${{ github.sha }}
