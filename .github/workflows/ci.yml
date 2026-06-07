@@ -24,9 +24,11 @@ jobs:
           cache: 'maven'
 
       - name: Configure Akka repository
+        env:
+          AKKA_REPO_URL: ${{ secrets.AKKA_REPO_URL }}
         run: |
           mkdir -p ~/.m2
-          cat > ~/.m2/settings.xml << 'EOF'
+          cat > ~/.m2/settings.xml <<EOF
           <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
             xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
@@ -37,13 +39,13 @@ jobs:
                 <repositories>
                   <repository>
                     <id>akka-repository</id>
-                    <url>${{ secrets.AKKA_REPO_URL }}</url>
+                    <url>${AKKA_REPO_URL}</url>
                   </repository>
                 </repositories>
                 <pluginRepositories>
                   <pluginRepository>
                     <id>akka-plugin-repository</id>
-                    <url>${{ secrets.AKKA_REPO_URL }}</url>
+                    <url>${AKKA_REPO_URL}</url>
                   </pluginRepository>
                 </pluginRepositories>
               </profile>
@@ -81,9 +83,11 @@ jobs:
           cache: 'maven'
 
       - name: Configure Akka repository
+        env:
+          AKKA_REPO_URL: ${{ secrets.AKKA_REPO_URL }}
         run: |
           mkdir -p ~/.m2
-          cat > ~/.m2/settings.xml << 'EOF'
+          cat > ~/.m2/settings.xml <<EOF
           <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
             xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
@@ -94,13 +98,13 @@ jobs:
                 <repositories>
                   <repository>
                     <id>akka-repository</id>
-                    <url>${{ secrets.AKKA_REPO_URL }}</url>
+                    <url>${AKKA_REPO_URL}</url>
                   </repository>
                 </repositories>
                 <pluginRepositories>
                   <pluginRepository>
                     <id>akka-plugin-repository</id>
-                    <url>${{ secrets.AKKA_REPO_URL }}</url>
+                    <url>${AKKA_REPO_URL}</url>
                   </pluginRepository>
                 </pluginRepositories>
               </profile>
