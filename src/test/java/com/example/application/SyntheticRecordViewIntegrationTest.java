@@ -2,11 +2,13 @@ package com.example.application;
 
 import akka.javasdk.testkit.TestKit;
 import akka.javasdk.testkit.TestKitSupport;
+import com.example.api.JwtEndpoint;
 import com.example.domain.SyntheticRecordEvent.RecordCreated;
 import com.example.domain.SyntheticRecordEvent.RecordUpdated;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -17,6 +19,7 @@ public class SyntheticRecordViewIntegrationTest extends TestKitSupport {
   @Override
   protected TestKit.Settings testKitSettings() {
     return TestKit.Settings.DEFAULT
+        .withDisabledComponents(Set.of(JwtEndpoint.class))
         .withEventSourcedEntityIncomingMessages(SyntheticRecordEntity.class);
   }
 

@@ -44,7 +44,7 @@ Returns service health status including persistence round-trip verification.
 
 ### Event Sourced Entity Endpoints
 
-#### `POST /pulse/records/{recordId}/create`
+#### `POST /pulse/ese/{recordId}/create`
 
 **Request**:
 ```json
@@ -57,7 +57,7 @@ Returns service health status including persistence round-trip verification.
 
 **Response** (201 Created): `SyntheticRecord` state
 
-#### `POST /pulse/records/{recordId}/update`
+#### `POST /pulse/ese/{recordId}/update`
 
 **Request**:
 ```json
@@ -69,7 +69,7 @@ Returns service health status including persistence round-trip verification.
 
 **Response** (200 OK): `SyntheticRecord` state
 
-#### `GET /pulse/records/{recordId}`
+#### `GET /pulse/ese/{recordId}`
 
 **Response** (200 OK): `SyntheticRecord` state
 
@@ -77,7 +77,7 @@ Returns service health status including persistence round-trip verification.
 
 ### Key Value Entity Endpoints
 
-#### `POST /pulse/entries/{entryId}`
+#### `POST /pulse/kve/{entryId}`
 
 **Request**:
 ```json
@@ -89,11 +89,11 @@ Returns service health status including persistence round-trip verification.
 
 **Response** (200 OK): `SyntheticEntry` state
 
-#### `GET /pulse/entries/{entryId}`
+#### `GET /pulse/kve/{entryId}`
 
 **Response** (200 OK): `SyntheticEntry` state
 
-#### `DELETE /pulse/entries/{entryId}`
+#### `DELETE /pulse/kve/{entryId}`
 
 **Response** (200 OK): confirmation
 
@@ -101,7 +101,7 @@ Returns service health status including persistence round-trip verification.
 
 ### View Endpoints
 
-#### `GET /pulse/records/by-name/{name}`
+#### `GET /pulse/view/by-name/{name}`
 
 **Response** (200 OK):
 ```json
@@ -117,7 +117,7 @@ Returns service health status including persistence round-trip verification.
 }
 ```
 
-#### `GET /pulse/records/all`
+#### `GET /pulse/view/all`
 
 **Response** (200 OK): Same structure as above
 
@@ -188,20 +188,20 @@ Returns service health status including persistence round-trip verification.
 **Request**:
 ```json
 {
-  "target": "event-sourced-entity",
+  "target": "ese",
   "count": 50,
   "delaySeconds": 0
 }
 ```
 
-`target` values: `"event-sourced-entity"`, `"key-value-entity"`
+`target` values: `"ese"`, `"kve"`
 
 **Constraints**: `count` max 100, `delaySeconds` max 300
 
 **Response** (200 OK):
 ```json
 {
-  "target": "event-sourced-entity",
+  "target": "ese",
   "requested": 50,
   "succeeded": 50,
   "failed": 0,

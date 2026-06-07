@@ -6,6 +6,7 @@ import akka.javasdk.annotations.http.Post;
 import akka.javasdk.client.ComponentClient;
 import com.example.application.SyntheticEntryEntity;
 import com.example.application.SyntheticRecordEntity;
+import com.example.application.SyntheticWorkflow;
 
 import java.util.ArrayList;
 import java.util.UUID;
@@ -33,8 +34,8 @@ public class BurstEndpoint {
     if (request.delaySeconds() < 0 || request.delaySeconds() > 300) {
       throw new IllegalArgumentException("delaySeconds must be between 0 and 300");
     }
-    if (!"event-sourced-entity".equals(request.target()) && !"key-value-entity".equals(request.target())) {
-      throw new IllegalArgumentException("target must be 'event-sourced-entity' or 'key-value-entity'");
+    if (!"ese".equals(request.target()) && !"kve".equals(request.target()) && !"workflow".equals(request.target())) {
+      throw new IllegalArgumentException("target must be 'ese', 'kve', or 'workflow'");
     }
 
     long start = System.currentTimeMillis();
@@ -46,14 +47,18 @@ public class BurstEndpoint {
       var entityId = "burst-" + UUID.randomUUID();
       var future = CompletableFuture.runAsync(() -> {
         try {
-          if ("event-sourced-entity".equals(request.target())) {
+          if ("ese".equals(request.target())) {
             componentClient.forEventSourcedEntity(entityId)
                 .method(SyntheticRecordEntity::create)
                 .invoke(new SyntheticRecordEntity.CreateCommand("burst", "burst-value", request.delaySeconds()));
-          } else {
+          } else if ("kve".equals(request.target())) {
             componentClient.forKeyValueEntity(entityId)
                 .method(SyntheticEntryEntity::set)
                 .invoke(new SyntheticEntryEntity.SetCommand("burst-data", request.delaySeconds()));
+          } else {
+            componentClient.forWorkflow(entityId)
+                .method(SyntheticWorkflow::start)
+                .invoke(new SyntheticWorkflow.StartWorkflowRequest("burst", "normal", request.delaySeconds()));
           }
           succeeded.incrementAndGet();
         } catch (Exception e) {

@@ -39,39 +39,39 @@ curl http://localhost:9000/pulse/health
 
 ```shell
 # Create
-curl -X POST http://localhost:9000/pulse/records/test-1/create \
+curl -X POST http://localhost:9000/pulse/ese/test-1/create \
   -H "Content-Type: application/json" \
   -d '{"name":"my-record","value":"hello","delaySeconds":0}'
 
 # Update
-curl -X POST http://localhost:9000/pulse/records/test-1/update \
+curl -X POST http://localhost:9000/pulse/ese/test-1/update \
   -H "Content-Type: application/json" \
   -d '{"value":"updated","delaySeconds":0}'
 
 # Query
-curl http://localhost:9000/pulse/records/test-1
+curl http://localhost:9000/pulse/ese/test-1
 ```
 
 ### Key Value Entity
 
 ```shell
 # Set
-curl -X POST http://localhost:9000/pulse/entries/entry-1 \
+curl -X POST http://localhost:9000/pulse/kve/entry-1 \
   -H "Content-Type: application/json" \
   -d '{"data":"my-payload","delaySeconds":0}'
 
 # Get
-curl http://localhost:9000/pulse/entries/entry-1
+curl http://localhost:9000/pulse/kve/entry-1
 
 # Delete
-curl -X DELETE http://localhost:9000/pulse/entries/entry-1
+curl -X DELETE http://localhost:9000/pulse/kve/entry-1
 ```
 
 ### View
 
 ```shell
-curl http://localhost:9000/pulse/records/by-name/my-record
-curl http://localhost:9000/pulse/records/all
+curl http://localhost:9000/pulse/view/by-name/my-record
+curl http://localhost:9000/pulse/view/all
 ```
 
 ### Workflow
@@ -109,7 +109,7 @@ curl -X POST http://localhost:9000/pulse/timers/timer-1/schedule \
 
 ```shell
 # Slow entity command (3 seconds)
-curl -X POST http://localhost:9000/pulse/records/slow-1/create \
+curl -X POST http://localhost:9000/pulse/ese/slow-1/create \
   -H "Content-Type: application/json" \
   -d '{"name":"slow","value":"test","delaySeconds":3}'
 ```
@@ -120,7 +120,7 @@ curl -X POST http://localhost:9000/pulse/records/slow-1/create \
 # 50 parallel requests
 curl -X POST http://localhost:9000/pulse/burst/ \
   -H "Content-Type: application/json" \
-  -d '{"target":"event-sourced-entity","count":50,"delaySeconds":0}'
+  -d '{"target":"ese","count":50,"delaySeconds":0}'
 ```
 
 ### OpenAPI Spec

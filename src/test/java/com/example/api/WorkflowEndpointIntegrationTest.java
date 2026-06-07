@@ -1,16 +1,23 @@
 package com.example.api;
 
+import akka.javasdk.testkit.TestKit;
 import akka.javasdk.testkit.TestKitSupport;
 import com.example.application.SyntheticWorkflow;
 import com.example.domain.SyntheticWorkflowState;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class WorkflowEndpointIntegrationTest extends TestKitSupport {
+
+  @Override
+  protected TestKit.Settings testKitSettings() {
+    return TestKit.Settings.DEFAULT.withDisabledComponents(Set.of(JwtEndpoint.class));
+  }
 
   @Test
   public void normalModeCompletesWorkflow() {

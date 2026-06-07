@@ -1,11 +1,20 @@
 package com.example.api;
 
+import akka.javasdk.testkit.TestKit;
 import akka.javasdk.testkit.TestKitSupport;
+import com.example.api.JwtEndpoint;
 import org.junit.jupiter.api.Test;
+
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class PulseEndpointIntegrationTest extends TestKitSupport {
+
+  @Override
+  protected TestKit.Settings testKitSettings() {
+    return TestKit.Settings.DEFAULT.withDisabledComponents(Set.of(JwtEndpoint.class));
+  }
 
   @Test
   public void healthEndpointReturnsUpStatus() {

@@ -64,7 +64,7 @@ public class PulseEndpoint {
   public record CreateRecordRequest(String name, String value, int delaySeconds) {}
   public record UpdateRecordRequest(String value, int delaySeconds) {}
 
-  @Post("/records/{recordId}/create")
+  @Post("/ese/{recordId}/create")
   public HttpResponse createRecord(String recordId, CreateRecordRequest request) {
     var command = new SyntheticRecordEntity.CreateCommand(request.name(), request.value(), request.delaySeconds());
     var result = componentClient.forEventSourcedEntity(recordId)
@@ -73,7 +73,7 @@ public class PulseEndpoint {
     return HttpResponses.created(result);
   }
 
-  @Post("/records/{recordId}/update")
+  @Post("/ese/{recordId}/update")
   public SyntheticRecord updateRecord(String recordId, UpdateRecordRequest request) {
     var command = new SyntheticRecordEntity.UpdateCommand(request.value(), request.delaySeconds());
     return componentClient.forEventSourcedEntity(recordId)
@@ -81,7 +81,7 @@ public class PulseEndpoint {
         .invoke(command);
   }
 
-  @Get("/records/{recordId}")
+  @Get("/ese/{recordId}")
   public SyntheticRecord getRecord(String recordId) {
     return componentClient.forEventSourcedEntity(recordId)
         .method(SyntheticRecordEntity::get)
@@ -92,7 +92,7 @@ public class PulseEndpoint {
 
   public record SetEntryRequest(String data, int delaySeconds) {}
 
-  @Post("/entries/{entryId}")
+  @Post("/kve/{entryId}")
   public SyntheticEntry setEntry(String entryId, SetEntryRequest request) {
     var command = new SyntheticEntryEntity.SetCommand(request.data(), request.delaySeconds());
     return componentClient.forKeyValueEntity(entryId)
@@ -100,14 +100,14 @@ public class PulseEndpoint {
         .invoke(command);
   }
 
-  @Get("/entries/{entryId}")
+  @Get("/kve/{entryId}")
   public SyntheticEntry getEntry(String entryId) {
     return componentClient.forKeyValueEntity(entryId)
         .method(SyntheticEntryEntity::get)
         .invoke();
   }
 
-  @Delete("/entries/{entryId}")
+  @Delete("/kve/{entryId}")
   public Done deleteEntry(String entryId) {
     return componentClient.forKeyValueEntity(entryId)
         .method(SyntheticEntryEntity::delete)
@@ -116,14 +116,14 @@ public class PulseEndpoint {
 
   // --- View (US4) ---
 
-  @Get("/records/by-name/{name}")
+  @Get("/view/by-name/{name}")
   public SyntheticRecordView.SyntheticRecordEntries getRecordsByName(String name) {
     return componentClient.forView()
         .method(SyntheticRecordView::getByName)
         .invoke(name);
   }
 
-  @Get("/records/all")
+  @Get("/view/all")
   public SyntheticRecordView.SyntheticRecordEntries getAllRecords() {
     return componentClient.forView()
         .method(SyntheticRecordView::getAll)
@@ -165,5 +165,10 @@ public class PulseEndpoint {
   @Get("/openapi.yaml")
   public HttpResponse openApiYaml() {
     return HttpResponses.staticResource("openapi.yaml");
+  }
+
+  @Get("/docs")
+  public HttpResponse swaggerUi() {
+    return HttpResponses.staticResource("swagger-ui.html");
   }
 }

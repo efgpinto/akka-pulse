@@ -25,37 +25,37 @@ Expected: `{"status":"UP","serviceName":"akka-pulse",...}`
 ### Event Sourced Entity
 ```shell
 # Create
-curl -X POST http://localhost:9000/pulse/records/test-1/create \
+curl -X POST http://localhost:9000/pulse/ese/test-1/create \
   -H "Content-Type: application/json" \
   -d '{"name":"my-record","value":"hello"}'
 
 # Update
-curl -X POST http://localhost:9000/pulse/records/test-1/update \
+curl -X POST http://localhost:9000/pulse/ese/test-1/update \
   -H "Content-Type: application/json" \
   -d '{"value":"updated"}'
 
 # Query
-curl http://localhost:9000/pulse/records/test-1
+curl http://localhost:9000/pulse/ese/test-1
 ```
 
 ### Key Value Entity
 ```shell
 # Set
-curl -X POST http://localhost:9000/pulse/entries/entry-1 \
+curl -X POST http://localhost:9000/pulse/kve/entry-1 \
   -H "Content-Type: application/json" \
   -d '{"data":"my-payload"}'
 
 # Get
-curl http://localhost:9000/pulse/entries/entry-1
+curl http://localhost:9000/pulse/kve/entry-1
 
 # Delete
-curl -X DELETE http://localhost:9000/pulse/entries/entry-1
+curl -X DELETE http://localhost:9000/pulse/kve/entry-1
 ```
 
 ### View
 ```shell
-curl http://localhost:9000/pulse/records/by-name/my-record
-curl http://localhost:9000/pulse/records/all
+curl http://localhost:9000/pulse/view/by-name/my-record
+curl http://localhost:9000/pulse/view/all
 ```
 
 ### Workflow
@@ -90,7 +90,7 @@ curl -X POST http://localhost:9000/pulse/timers/timer-1/schedule \
 
 ```shell
 # Slow entity command (3 seconds)
-curl -X POST http://localhost:9000/pulse/records/slow-1/create \
+curl -X POST http://localhost:9000/pulse/ese/slow-1/create \
   -H "Content-Type: application/json" \
   -d '{"name":"slow-record","value":"test","delaySeconds":3}'
 
@@ -106,12 +106,12 @@ curl -X POST http://localhost:9000/pulse/workflows/slow-wf/start \
 # Burst 50 parallel requests to ESE
 curl -X POST http://localhost:9000/pulse/burst \
   -H "Content-Type: application/json" \
-  -d '{"target":"event-sourced-entity","count":50}'
+  -d '{"target":"ese","count":50}'
 
 # Burst with delay per request
 curl -X POST http://localhost:9000/pulse/burst \
   -H "Content-Type: application/json" \
-  -d '{"target":"key-value-entity","count":20,"delaySeconds":2}'
+  -d '{"target":"kve","count":20,"delaySeconds":2}'
 ```
 
 ## OpenAPI Spec
