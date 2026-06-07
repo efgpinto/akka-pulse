@@ -15,6 +15,10 @@ A synthetic test service built on [Akka SDK](https://doc.akka.io/sdk/index.html)
 | SyntheticEventConsumer | Consumer | Validate event consumption pipeline |
 | SyntheticTimedAction | Timed Action | Validate timer scheduling |
 
+## Swagger UI
+
+Once the service is running, open [http://localhost:9000/pulse/docs](http://localhost:9000/pulse/docs) in your browser for interactive API documentation.
+
 ## Build & Run
 
 ```shell
@@ -121,6 +125,21 @@ curl -X POST http://localhost:9000/pulse/ese/slow-1/create \
 curl -X POST http://localhost:9000/pulse/burst/ \
   -H "Content-Type: application/json" \
   -d '{"target":"ese","count":50,"delaySeconds":0}'
+```
+
+### JWT Endpoint (disabled by default)
+
+Enable by setting the `JWT_ISSUER` environment variable:
+
+```shell
+JWT_ISSUER=my-issuer mvn compile exec:java
+```
+
+Then test with a valid Bearer token:
+
+```shell
+curl http://localhost:9000/pulse/jwt/test \
+  -H "Authorization: Bearer <your-jwt-token>"
 ```
 
 ### OpenAPI Spec
