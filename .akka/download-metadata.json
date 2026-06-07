@@ -2,19 +2,19 @@
   "agents_md": {
     "etag": "\"8525-652c8e1bc7b55\"",
     "last_modified": "Wed, 27 May 2026 09:03:14 GMT",
-    "downloaded_at": "2026-06-06T23:09:53Z",
+    "downloaded_at": "2026-06-06T23:13:05Z",
     "source_url": "https://doc.akka.io/_attachments/AGENTS.md"
   },
   "claude_md": {
     "etag": "\"1299-652c8e1bc7b55\"",
     "last_modified": "Wed, 27 May 2026 09:03:14 GMT",
-    "downloaded_at": "2026-06-06T23:09:53Z",
+    "downloaded_at": "2026-06-06T23:13:05Z",
     "source_url": "https://doc.akka.io/_attachments/CLAUDE.md"
   },
   "context": {
     "etag": "\"11146d-652c903819789\"",
     "last_modified": "Wed, 27 May 2026 09:12:40 GMT",
-    "downloaded_at": "2026-06-06T23:09:52Z",
+    "downloaded_at": "2026-06-06T23:13:04Z",
     "source_url": "https://doc.akka.io/java/_attachments/akka-docs-md.zip"
   },
   "marketplace": {

@@ -14,4 +14,23 @@
     <dependencies>
         <!-- Your dependencies go here -->
     </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>sh.oso</groupId>
+                <artifactId>akka-openapi-maven-plugin</artifactId>
+                <version>1.0.0</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <outputFile>target/classes/static-resources/openapi.yaml</outputFile>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
