@@ -22,6 +22,7 @@ public class SyntheticWorkflow extends Workflow<SyntheticWorkflowState> {
   public WorkflowSettings settings() {
     return WorkflowSettings.builder()
         .defaultStepTimeout(ofSeconds(60))
+        .stepTimeout(SyntheticWorkflow::persistStep, ofSeconds(310))
         .stepRecovery(
             SyntheticWorkflow::persistStep,
             RecoverStrategy.maxRetries(1).failoverTo(SyntheticWorkflow::compensateStep))

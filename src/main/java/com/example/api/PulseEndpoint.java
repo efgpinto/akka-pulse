@@ -43,20 +43,30 @@ public class PulseEndpoint {
   public record HealthDownResponse(String status, String serviceName, String version, Instant timestamp, PersistenceCheckError persistenceCheck) {}
 
   @Get("/health")
-  public HealthUpResponse health() {
+  public HttpResponse health() {
     long start = System.currentTimeMillis();
-    componentClient.forKeyValueEntity("heartbeat")
-        .method(HealthCheckEntity::set)
-        .invoke();
+    try {
+      componentClient.forKeyValueEntity("heartbeat")
+          .method(HealthCheckEntity::set)
+          .invoke();
 
-    componentClient.forKeyValueEntity("heartbeat")
-        .method(HealthCheckEntity::get)
-        .invoke();
+      componentClient.forKeyValueEntity("heartbeat")
+          .method(HealthCheckEntity::get)
+          .invoke();
 
-    long latencyMs = System.currentTimeMillis() - start;
-    return new HealthUpResponse(
-        "UP", "akka-pulse", "1.0-SNAPSHOT", Instant.now(),
-        new PersistenceCheckResult("OK", latencyMs));
+      long latencyMs = System.currentTimeMillis() - start;
+      return HttpResponses.ok(new HealthUpResponse(
+          "UP", "akka-pulse", "1.0-SNAPSHOT", Instant.now(),
+          new PersistenceCheckResult("OK", latencyMs)));
+    } catch (Exception e) {
+      var body = new HealthDownResponse(
+          "DOWN", "akka-pulse", "1.0-SNAPSHOT", Instant.now(),
+          new PersistenceCheckError("FAILED", "Persistence round-trip failed: " + e.getMessage()));
+      return HttpResponse.create()
+          .withStatus(akka.http.javadsl.model.StatusCodes.SERVICE_UNAVAILABLE)
+          .withEntity(akka.http.javadsl.model.ContentTypes.APPLICATION_JSON,
+              akka.javasdk.JsonSupport.encodeToAkkaByteString(body));
+    }
   }
 
   // --- Event Sourced Entity (US2) ---
