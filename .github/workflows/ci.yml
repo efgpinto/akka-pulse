@@ -115,8 +115,11 @@ jobs:
           </settings>
           EOF
 
+      - name: Set short SHA
+        run: echo "SHORT_SHA=${GITHUB_SHA::6}" >> $GITHUB_ENV
+
       - name: Build container image
-        run: mvn clean install -DskipTests -Ddocker.tag=${{ github.sha }}
+        run: mvn clean install -DskipTests -Ddocker.tag=${{ env.SHORT_SHA }}
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
@@ -126,7 +129,7 @@ jobs:
 
       - name: Tag and push image
         run: |
-          docker tag akka-pulse:${{ github.sha }} ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
-          docker tag akka-pulse:${{ github.sha }} ${{ env.DOCKER_IMAGE }}:latest
-          docker push ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
+          docker tag akka-pulse:${{ env.SHORT_SHA }} ${{ env.DOCKER_IMAGE }}:${{ env.SHORT_SHA }}
+          docker tag akka-pulse:${{ env.SHORT_SHA }} ${{ env.DOCKER_IMAGE }}:latest
+          docker push ${{ env.DOCKER_IMAGE }}:${{ env.SHORT_SHA }}
           docker push ${{ env.DOCKER_IMAGE }}:latest
