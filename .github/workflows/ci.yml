@@ -67,7 +67,7 @@ jobs:
         env:
           JWT_ISSUER: test-issuer
 
-  snyk-security:
+  snyk-sdk-scan:
     runs-on: ubuntu-latest
 
     steps:
@@ -107,16 +107,36 @@ jobs:
           </settings>
           EOF
 
+      - name: Build container image
+        run: mvn clean install -DskipTests
+
       - name: Install Snyk CLI
         run: npm install -g snyk
 
-      - name: Snyk Open Source (dependency vulnerabilities)
-        run: snyk test --severity-threshold=high
+      - name: List deployed SDK JARs
+        run: ls -la target/docker/akka-pulse/latest/build/maven/
+
+      - name: Snyk scan SDK dependencies
+        run: snyk test --scan-all-unmanaged --severity-threshold=high -- --target-dir=target/docker/akka-pulse/latest/build/maven/
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
       - name: Snyk Code (static analysis)
         run: snyk code test
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+  snyk-runtime-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Snyk CLI
+        run: npm install -g snyk
+
+      - name: Snyk scan Akka runtime image
+        run: snyk container test registry.akka.io/kalix-runtime-postgres:latest --severity-threshold=high
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
@@ -173,14 +193,6 @@ jobs:
 
       - name: Build container image
         run: mvn clean install -DskipTests -Ddocker.tag=${{ env.SHORT_SHA }}
-
-      - name: Snyk Container scan
-        uses: snyk/actions/docker@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          image: akka-pulse:${{ env.SHORT_SHA }}
-          args: --severity-threshold=high
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
