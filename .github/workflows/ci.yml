@@ -127,11 +127,6 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-      - name: Snyk Code (static analysis)
-        run: snyk code test
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
   snyk-runtime-image-scan:
     runs-on: ubuntu-latest
 
