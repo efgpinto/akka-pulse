@@ -136,7 +136,7 @@ jobs:
         run: npm install -g snyk
 
       - name: Snyk scan Akka runtime image
-        run: snyk container test registry.akka.io/kalix-runtime-postgres:latest --severity-threshold=medium
+        run: snyk container test registry.akka.io/akka-runtime-postgres:1.6.12 --severity-threshold=medium
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
