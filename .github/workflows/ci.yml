@@ -123,13 +123,11 @@ jobs:
         run: ls -la target/docker/akka-pulse/latest/build/maven/
 
       - name: Snyk scan SDK dependencies
-        continue-on-error: true
         run: snyk test --scan-all-unmanaged --severity-threshold=medium -- --target-dir=target/docker/akka-pulse/latest/build/maven/
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
       - name: Snyk Code (static analysis)
-        continue-on-error: true
         run: snyk code test
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
@@ -144,7 +142,6 @@ jobs:
         run: npm install -g snyk
 
       - name: Snyk scan Akka runtime image
-        continue-on-error: true
         run: snyk container test registry.akka.io/akka-runtime-postgres:1.6.12 --severity-threshold=medium
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
@@ -218,7 +215,6 @@ jobs:
         run: npm install -g snyk
 
       - name: Snyk scan runtime dependencies
-        continue-on-error: true
         run: snyk test --file=/tmp/runtime-deps-scan/pom.xml --severity-threshold=medium
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
