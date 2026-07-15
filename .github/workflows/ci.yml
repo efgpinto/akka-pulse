@@ -126,7 +126,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-  snyk-runtime-scan:
+  snyk-runtime-image-scan:
     runs-on: ubuntu-latest
 
     steps:
@@ -137,6 +137,79 @@ jobs:
 
       - name: Snyk scan Akka runtime image
         run: snyk container test registry.akka.io/akka-runtime-postgres:1.6.12 --severity-threshold=medium
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+  snyk-runtime-deps-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Configure Akka repository
+        env:
+          AKKA_REPO_URL: ${{ secrets.AKKA_REPO_URL }}
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml <<EOF
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                                https://maven.apache.org/xsd/settings-1.0.0.xsd">
+            <profiles>
+              <profile>
+                <id>akka-repo</id>
+                <repositories>
+                  <repository>
+                    <id>akka-repository</id>
+                    <url>${AKKA_REPO_URL}</url>
+                  </repository>
+                </repositories>
+              </profile>
+            </profiles>
+            <activeProfiles>
+              <activeProfile>akka-repo</activeProfile>
+            </activeProfiles>
+          </settings>
+          EOF
+
+      - name: Generate runtime dependencies pom
+        run: |
+          mkdir -p /tmp/runtime-deps-scan
+          cat > /tmp/runtime-deps-scan/pom.xml <<'POMEOF'
+          <project xmlns="http://maven.apache.org/POM/4.0.0"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                                https://maven.apache.org/xsd/maven-4.0.0.xsd">
+            <modelVersion>4.0.0</modelVersion>
+            <groupId>com.example</groupId>
+            <artifactId>runtime-deps-scan</artifactId>
+            <version>1.0.0</version>
+            <packaging>pom</packaging>
+            <dependencies>
+              <dependency>
+                <groupId>io.akka</groupId>
+                <artifactId>akka-runtime-dependencies</artifactId>
+                <version>1.6.12</version>
+              </dependency>
+            </dependencies>
+          </project>
+          POMEOF
+
+      - name: Resolve runtime dependencies
+        run: mvn -f /tmp/runtime-deps-scan/pom.xml dependency:resolve -q
+
+      - name: Install Snyk CLI
+        run: npm install -g snyk
+
+      - name: Snyk scan runtime dependencies
+        run: snyk test --file=/tmp/runtime-deps-scan/pom.xml --severity-threshold=medium
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
