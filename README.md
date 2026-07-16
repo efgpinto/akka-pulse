@@ -148,6 +148,10 @@ curl http://localhost:9000/pulse/jwt/test \
 curl http://localhost:9000/pulse/openapi.yaml
 ```
 
+## Security Scanning
+
+The CI pipeline includes Snyk vulnerability scanning across three layers: application SDK dependencies, Akka runtime container image, and Akka runtime Java dependencies. See [docs/vulnerability-scanning.md](docs/vulnerability-scanning.md) for details.
+
 ## Deploy
 
 Build container image:
