@@ -23,6 +23,29 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
+  snyk-runtime-image-scan-akka-only:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build scan image (Akka runtime libs only, excludes legacy Kalix libs)
+        run: |
+          cat > /tmp/Dockerfile.scan <<EOF
+          FROM registry.akka.io/akka-runtime-postgres:${{ inputs.runtime_version }} AS source
+          FROM eclipse-temurin:21-jre-jammy
+          COPY --from=source /opt/docker/akka/lib/ /opt/docker/akka/lib/
+          EOF
+          docker build --platform linux/amd64 -f /tmp/Dockerfile.scan -t akka-runtime-scan:${{ inputs.runtime_version }} .
+
+      - name: Install Snyk CLI
+        run: npm install -g snyk
+
+      - name: Snyk scan Akka runtime libs
+        run: snyk container test akka-runtime-scan:${{ inputs.runtime_version }} --severity-threshold=medium
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
   snyk-runtime-deps-scan:
     runs-on: ubuntu-latest
 
@@ -75,17 +98,6 @@ jobs:
             <artifactId>runtime-deps-scan</artifactId>
             <version>1.0.0</version>
             <packaging>pom</packaging>
-            <dependencyManagement>
-              <dependencies>
-                <dependency>
-                  <groupId>io.akka</groupId>
-                  <artifactId>akka-runtime-dependencies</artifactId>
-                  <version>${{ inputs.runtime_version }}</version>
-                  <type>pom</type>
-                  <scope>import</scope>
-                </dependency>
-              </dependencies>
-            </dependencyManagement>
             <dependencies>
               <dependency>
                 <groupId>io.akka</groupId>
