@@ -150,7 +150,7 @@ curl http://localhost:9000/pulse/openapi.yaml
 
 ## Security Scanning
 
-The CI pipeline includes Snyk vulnerability scanning across three layers: application SDK dependencies, Akka runtime container image, and Akka runtime Java dependencies. See [docs/vulnerability-scanning.md](docs/vulnerability-scanning.md) for details.
+The project uses Snyk vulnerability scanning. The recommended scans are the application SDK dependency scan (automatic in CI) and the Akka-only runtime image scan (manually triggered); alternative approaches are kept configured and documented with their shortcomings. See [docs/vulnerability-scanning.md](docs/vulnerability-scanning.md) for details.
 
 ## Deploy
 

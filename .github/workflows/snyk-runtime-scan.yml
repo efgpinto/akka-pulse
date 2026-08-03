@@ -9,20 +9,9 @@ on:
         type: string
 
 jobs:
-  snyk-runtime-image-scan:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Snyk CLI
-        run: npm install -g snyk
-
-      - name: Snyk scan Akka runtime image
-        run: snyk container test registry.akka.io/akka-runtime-postgres:${{ inputs.runtime_version }} --severity-threshold=medium
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
+  # RECOMMENDED: scans only /opt/docker/akka/lib/ from the runtime image — the JARs
+  # actually loaded at runtime for SDK 3.1+, with the sbt dependencyOverrides already
+  # applied. Ground truth, no false positives from legacy Kalix libs.
   snyk-runtime-image-scan-akka-only:
     runs-on: ubuntu-latest
 
@@ -46,6 +35,29 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
+  # ALTERNATIVE: scans the full runtime image, including legacy Kalix libs in
+  # /opt/docker/lib/ that are never loaded for SDK 3.1+ deployments. Produces
+  # false positives (e.g. scram 3.2) but gives the complete image picture for
+  # compliance/audit purposes.
+  snyk-runtime-image-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Snyk CLI
+        run: npm install -g snyk
+
+      - name: Snyk scan Akka runtime image
+        run: snyk container test registry.akka.io/akka-runtime-postgres:${{ inputs.runtime_version }} --severity-threshold=medium
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+  # ALTERNATIVE: scans the Maven dependency graph of akka-runtime-dependencies.
+  # The published poms do not carry the sbt dependencyOverrides used to build the
+  # image, so versions are pinned from the artifact's META-INF manifest to match
+  # what actually ships. Kept because it reports dependency paths (image scans
+  # don't), useful to trace where a vulnerable library comes from.
   snyk-runtime-deps-scan:
     runs-on: ubuntu-latest
 
@@ -87,8 +99,24 @@ jobs:
 
       - name: Generate runtime dependencies pom
         run: |
+          RUNTIME_VERSION="${{ inputs.runtime_version }}"
           mkdir -p /tmp/runtime-deps-scan
-          cat > /tmp/runtime-deps-scan/pom.xml <<POMEOF
+          cd /tmp/runtime-deps-scan
+
+          # Fetch the runtime-dependencies JAR; its META-INF manifest lists the exact
+          # version of every dependency shipped in the runtime image (the sbt build
+          # applies dependencyOverrides that are NOT reflected in the published poms).
+          mvn -q org.apache.maven.plugins:maven-dependency-plugin:3.6.1:get \
+            -Dartifact=io.akka:akka-runtime-dependencies:${RUNTIME_VERSION}:jar
+          JAR=~/.m2/repository/io/akka/akka-runtime-dependencies/${RUNTIME_VERSION}/akka-runtime-dependencies-${RUNTIME_VERSION}.jar
+
+          # Pin every manifest version via dependencyManagement so Maven resolves the
+          # same versions the runtime actually ships, instead of stale transitives.
+          unzip -p "$JAR" META-INF/akka-runtime-dependencies.properties \
+            | awk -F'[%=]' '!/^#/ && /=/ {printf "        <dependency>\n          <groupId>%s</groupId>\n          <artifactId>%s</artifactId>\n          <version>%s</version>\n        </dependency>\n", $1, $2, $3}' > depmgmt.xml
+
+          {
+            cat <<'POMHEAD'
           <project xmlns="http://maven.apache.org/POM/4.0.0"
             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
             xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
@@ -98,15 +126,23 @@ jobs:
             <artifactId>runtime-deps-scan</artifactId>
             <version>1.0.0</version>
             <packaging>pom</packaging>
+            <dependencyManagement>
+              <dependencies>
+          POMHEAD
+            cat depmgmt.xml
+            cat <<POMTAIL
+              </dependencies>
+            </dependencyManagement>
             <dependencies>
               <dependency>
                 <groupId>io.akka</groupId>
                 <artifactId>akka-runtime-dependencies</artifactId>
-                <version>${{ inputs.runtime_version }}</version>
+                <version>${RUNTIME_VERSION}</version>
               </dependency>
             </dependencies>
           </project>
-          POMEOF
+          POMTAIL
+          } > pom.xml
 
       - name: Resolve runtime dependencies
         run: mvn -f /tmp/runtime-deps-scan/pom.xml dependency:resolve -q
