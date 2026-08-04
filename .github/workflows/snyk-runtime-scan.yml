@@ -145,11 +145,13 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-  # ALTERNATIVE: scans the Maven dependency graph of akka-runtime-dependencies.
-  # The published poms do not carry the sbt dependencyOverrides used to build the
-  # image, so versions are pinned from the artifact's META-INF manifest to match
-  # what actually ships. Kept because it reports dependency paths (image scans
-  # don't), useful to trace where a vulnerable library comes from.
+  # ALTERNATIVE: naive scan of the Maven dependency graph of
+  # akka-runtime-dependencies. The published poms do not carry the sbt
+  # dependencyOverrides used to build the image, so this reports stale transitive
+  # versions that do not actually ship (e.g. scram-common 3.2 instead of 3.4) —
+  # see snyk-runtime-manifest-scan for the accurate version of this approach.
+  # Kept because it reports dependency paths (image scans don't), useful to
+  # trace where a vulnerable library comes from.
   snyk-runtime-deps-scan:
     runs-on: ubuntu-latest
 
@@ -191,24 +193,8 @@ jobs:
 
       - name: Generate runtime dependencies pom
         run: |
-          RUNTIME_VERSION="${{ inputs.runtime_version }}"
           mkdir -p /tmp/runtime-deps-scan
-          cd /tmp/runtime-deps-scan
-
-          # Fetch the runtime-dependencies JAR; its META-INF manifest lists the exact
-          # version of every dependency shipped in the runtime image (the sbt build
-          # applies dependencyOverrides that are NOT reflected in the published poms).
-          mvn -q org.apache.maven.plugins:maven-dependency-plugin:3.6.1:get \
-            -Dartifact=io.akka:akka-runtime-dependencies:${RUNTIME_VERSION}:jar
-          JAR=~/.m2/repository/io/akka/akka-runtime-dependencies/${RUNTIME_VERSION}/akka-runtime-dependencies-${RUNTIME_VERSION}.jar
-
-          # Pin every manifest version via dependencyManagement so Maven resolves the
-          # same versions the runtime actually ships, instead of stale transitives.
-          unzip -p "$JAR" META-INF/akka-runtime-dependencies.properties \
-            | awk -F'[%=]' '!/^#/ && /=/ {printf "        <dependency>\n          <groupId>%s</groupId>\n          <artifactId>%s</artifactId>\n          <version>%s</version>\n        </dependency>\n", $1, $2, $3}' > depmgmt.xml
-
-          {
-            cat <<'POMHEAD'
+          cat > /tmp/runtime-deps-scan/pom.xml <<POMEOF
           <project xmlns="http://maven.apache.org/POM/4.0.0"
             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
             xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
@@ -218,23 +204,15 @@ jobs:
             <artifactId>runtime-deps-scan</artifactId>
             <version>1.0.0</version>
             <packaging>pom</packaging>
-            <dependencyManagement>
-              <dependencies>
-          POMHEAD
-            cat depmgmt.xml
-            cat <<POMTAIL
-              </dependencies>
-            </dependencyManagement>
             <dependencies>
               <dependency>
                 <groupId>io.akka</groupId>
                 <artifactId>akka-runtime-dependencies</artifactId>
-                <version>${RUNTIME_VERSION}</version>
+                <version>${{ inputs.runtime_version }}</version>
               </dependency>
             </dependencies>
           </project>
-          POMTAIL
-          } > pom.xml
+          POMEOF
 
       - name: Resolve runtime dependencies
         run: mvn -f /tmp/runtime-deps-scan/pom.xml dependency:resolve -q
