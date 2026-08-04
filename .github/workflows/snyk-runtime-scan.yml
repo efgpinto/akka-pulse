@@ -224,3 +224,63 @@ jobs:
         run: snyk test --file=/tmp/runtime-deps-scan/pom.xml --severity-threshold=medium
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+  # ALTERNATIVE: the most naive approach — snyk test straight on the project's
+  # own pom.xml, as one would do for a regular Maven application. Scans the
+  # dev-time dependency tree, which includes akka-runtime-dev (local development
+  # runtime, never deployed, and typically version-stale vs the real runtime)
+  # and test-scoped dependencies. Findings map poorly to production.
+  # Note: this job does not use the runtime_version input.
+  snyk-naive-pom-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Configure Akka repository
+        env:
+          AKKA_REPO_URL: ${{ secrets.AKKA_REPO_URL }}
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml <<EOF
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                                https://maven.apache.org/xsd/settings-1.0.0.xsd">
+            <profiles>
+              <profile>
+                <id>akka-repo</id>
+                <repositories>
+                  <repository>
+                    <id>akka-repository</id>
+                    <url>${AKKA_REPO_URL}</url>
+                  </repository>
+                </repositories>
+                <pluginRepositories>
+                  <pluginRepository>
+                    <id>akka-plugin-repository</id>
+                    <url>${AKKA_REPO_URL}</url>
+                  </pluginRepository>
+                </pluginRepositories>
+              </profile>
+            </profiles>
+            <activeProfiles>
+              <activeProfile>akka-repo</activeProfile>
+            </activeProfiles>
+          </settings>
+          EOF
+
+      - name: Install Snyk CLI
+        run: npm install -g snyk
+
+      - name: Snyk scan application pom
+        run: snyk test --severity-threshold=medium
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
