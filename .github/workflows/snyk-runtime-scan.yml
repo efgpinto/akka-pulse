@@ -230,6 +230,10 @@ jobs:
   # dev-time dependency tree, which includes akka-runtime-dev (local development
   # runtime, never deployed, and typically version-stale vs the real runtime)
   # and test-scoped dependencies. Findings map poorly to production.
+  # Issues introduced via io.akka:akka-runtime-dev are filtered out of the
+  # results: Snyk has no native "ignore everything from this dependency" rule
+  # (.snyk ignores are per-vulnerability ID), so the job post-filters Snyk's
+  # JSON output on the dependency path instead.
   # Note: this job does not use the runtime_version input.
   snyk-naive-pom-scan:
     runs-on: ubuntu-latest
@@ -280,7 +284,23 @@ jobs:
       - name: Install Snyk CLI
         run: npm install -g snyk
 
-      - name: Snyk scan application pom
-        run: snyk test --severity-threshold=medium
+      - name: Snyk scan application pom (ignoring akka-runtime-dev)
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          set +e
+          snyk test --severity-threshold=medium --json > snyk-result.json
+          code=$?
+          set -e
+          # 0 = no vulns, 1 = vulns found, >=2 = scan error
+          if [ "$code" -ge 2 ]; then
+            cat snyk-result.json
+            exit "$code"
+          fi
+
+          ignored=$(jq '[.vulnerabilities[] | select(.from | map(startswith("io.akka:akka-runtime-dev")) | any)] | length' snyk-result.json)
+          remaining=$(jq '[.vulnerabilities[] | select((.from | map(startswith("io.akka:akka-runtime-dev")) | any) | not)] | length' snyk-result.json)
+          echo "Ignored $ignored issue paths introduced via io.akka:akka-runtime-dev"
+          echo "Remaining issue paths: $remaining"
+          jq -r '.vulnerabilities[] | select((.from | map(startswith("io.akka:akka-runtime-dev")) | any) | not) | "✗ [\(.severity)] \(.id) in \(.packageName)@\(.version)\n  introduced by \(.from | join(" > "))"' snyk-result.json
+          [ "$remaining" -eq 0 ]
