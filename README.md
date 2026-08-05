@@ -150,7 +150,7 @@ curl http://localhost:9000/pulse/openapi.yaml
 
 ## Security Scanning
 
-The project uses Snyk vulnerability scanning. The recommended scans are the application SDK dependency scan (automatic in CI), the Akka-only runtime image scan, and the runtime manifest dependency scan (both manually triggered); alternative approaches are kept configured and documented with their shortcomings. See [docs/vulnerability-scanning.md](docs/vulnerability-scanning.md) for details.
+The project uses Snyk vulnerability scanning. The application SDK dependency scan runs automatically in CI; the remaining scans are manually triggered and split into two workflows: recommended scans (Akka-only runtime image, runtime manifest dependencies, filtered application pom) and alternative scans kept for reference. See [docs/vulnerability-scanning.md](docs/vulnerability-scanning.md) for details.
 
 ## Deploy
 

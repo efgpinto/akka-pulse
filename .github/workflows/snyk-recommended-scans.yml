@@ -1,16 +1,16 @@
-name: Snyk Runtime Scan
+name: Snyk Recommended Scans
 
 on:
   workflow_dispatch:
     inputs:
       runtime_version:
-        description: 'Akka runtime version (e.g. 1.6.12)'
+        description: 'Akka runtime version (e.g. 1.6.15)'
         required: true
         type: string
 
 jobs:
-  # RECOMMENDED: scans only /opt/docker/akka/lib/ from the runtime image — the JARs
-  # actually loaded at runtime for SDK 3.1+, with the sbt dependencyOverrides already
+  # Scans only /opt/docker/akka/lib/ from the runtime image — the JARs actually
+  # loaded at runtime for SDK 3.1+, with the sbt dependencyOverrides already
   # applied. Ground truth, no false positives from legacy Kalix libs.
   snyk-runtime-image-scan-akka-only:
     runs-on: ubuntu-latest
@@ -35,7 +35,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-  # RECOMMENDED: scans exactly the dependency list shipped inside the
+  # Scans exactly the dependency list shipped inside the
   # akka-runtime-dependencies JAR (META-INF/akka-runtime-dependencies.properties,
   # the same manifest the SDK enforcer uses). Each entry becomes a direct
   # dependency with wildcard exclusions, so no transitives are resolved and no
@@ -127,113 +127,12 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-  # ALTERNATIVE: scans the full runtime image, including legacy Kalix libs in
-  # /opt/docker/lib/ that are never loaded for SDK 3.1+ deployments. Produces
-  # false positives (e.g. scram 3.2) but gives the complete image picture for
-  # compliance/audit purposes.
-  snyk-runtime-image-scan:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Snyk CLI
-        run: npm install -g snyk
-
-      - name: Snyk scan Akka runtime image
-        run: snyk container test registry.akka.io/akka-runtime-postgres:${{ inputs.runtime_version }} --severity-threshold=medium
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
-  # ALTERNATIVE: naive scan of the Maven dependency graph of
-  # akka-runtime-dependencies. The published poms do not carry the sbt
-  # dependencyOverrides used to build the image, so this reports stale transitive
-  # versions that do not actually ship (e.g. scram-common 3.2 instead of 3.4) —
-  # see snyk-runtime-manifest-scan for the accurate version of this approach.
-  # Kept because it reports dependency paths (image scans don't), useful to
-  # trace where a vulnerable library comes from.
-  snyk-runtime-deps-scan:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Java 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-
-      - name: Configure Akka repository
-        env:
-          AKKA_REPO_URL: ${{ secrets.AKKA_REPO_URL }}
-        run: |
-          mkdir -p ~/.m2
-          cat > ~/.m2/settings.xml <<EOF
-          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
-            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-            xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
-                                https://maven.apache.org/xsd/settings-1.0.0.xsd">
-            <profiles>
-              <profile>
-                <id>akka-repo</id>
-                <repositories>
-                  <repository>
-                    <id>akka-repository</id>
-                    <url>${AKKA_REPO_URL}</url>
-                  </repository>
-                </repositories>
-              </profile>
-            </profiles>
-            <activeProfiles>
-              <activeProfile>akka-repo</activeProfile>
-            </activeProfiles>
-          </settings>
-          EOF
-
-      - name: Generate runtime dependencies pom
-        run: |
-          mkdir -p /tmp/runtime-deps-scan
-          cat > /tmp/runtime-deps-scan/pom.xml <<POMEOF
-          <project xmlns="http://maven.apache.org/POM/4.0.0"
-            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-            xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
-                                https://maven.apache.org/xsd/maven-4.0.0.xsd">
-            <modelVersion>4.0.0</modelVersion>
-            <groupId>com.example</groupId>
-            <artifactId>runtime-deps-scan</artifactId>
-            <version>1.0.0</version>
-            <packaging>pom</packaging>
-            <dependencies>
-              <dependency>
-                <groupId>io.akka</groupId>
-                <artifactId>akka-runtime-dependencies</artifactId>
-                <version>${{ inputs.runtime_version }}</version>
-              </dependency>
-            </dependencies>
-          </project>
-          POMEOF
-
-      - name: Resolve runtime dependencies
-        run: mvn -f /tmp/runtime-deps-scan/pom.xml dependency:resolve -q
-
-      - name: Install Snyk CLI
-        run: npm install -g snyk
-
-      - name: Snyk scan runtime dependencies
-        run: snyk test --file=/tmp/runtime-deps-scan/pom.xml --severity-threshold=medium
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
-  # ALTERNATIVE: the most naive approach — snyk test straight on the project's
-  # own pom.xml, as one would do for a regular Maven application. Scans the
-  # dev-time dependency tree, which includes akka-runtime-dev (local development
-  # runtime, never deployed, and typically version-stale vs the real runtime)
-  # and test-scoped dependencies. Findings map poorly to production.
-  # Issues introduced via io.akka:akka-runtime-dev are filtered out of the
-  # results: Snyk has no native "ignore everything from this dependency" rule
-  # (.snyk ignores are per-vulnerability ID), so the job post-filters Snyk's
-  # JSON output on the dependency path instead.
+  # snyk test on the project's own pom.xml, as one would do for a regular Maven
+  # application, with issues introduced via io.akka:akka-runtime-dev filtered
+  # out of the results (local development runtime, never deployed). Snyk has no
+  # native "ignore everything from this dependency" rule (.snyk ignores are
+  # per-vulnerability ID), so the job post-filters Snyk's JSON output on the
+  # dependency path instead.
   # Note: this job does not use the runtime_version input.
   snyk-naive-pom-scan:
     runs-on: ubuntu-latest
