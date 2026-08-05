@@ -106,3 +106,69 @@ jobs:
         run: snyk test --file=/tmp/runtime-deps-scan/pom.xml --severity-threshold=medium
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+  # ALTERNATIVE: naive container scan of the application image produced by
+  # mvn install — what a registry-integrated scanner would report on the pushed
+  # image. The image is only an init container (Alpine base + JARs copied to
+  # /opt/local-lib at deploy time); it never runs the service, so OS-package
+  # findings are irrelevant and Java findings duplicate the CI SDK scan.
+  # Note: this job does not use the runtime_version input.
+  snyk-app-image-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Configure Akka repository
+        env:
+          AKKA_REPO_URL: ${{ secrets.AKKA_REPO_URL }}
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml <<EOF
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                                https://maven.apache.org/xsd/settings-1.0.0.xsd">
+            <profiles>
+              <profile>
+                <id>akka-repo</id>
+                <repositories>
+                  <repository>
+                    <id>akka-repository</id>
+                    <url>${AKKA_REPO_URL}</url>
+                  </repository>
+                </repositories>
+                <pluginRepositories>
+                  <pluginRepository>
+                    <id>akka-plugin-repository</id>
+                    <url>${AKKA_REPO_URL}</url>
+                  </pluginRepository>
+                </pluginRepositories>
+              </profile>
+            </profiles>
+            <activeProfiles>
+              <activeProfile>akka-repo</activeProfile>
+            </activeProfiles>
+          </settings>
+          EOF
+
+      - name: Build container image
+        run: mvn clean install -DskipTests
+
+      - name: Show built image
+        run: docker images akka-pulse
+
+      - name: Install Snyk CLI
+        run: npm install -g snyk
+
+      - name: Snyk scan application image
+        run: snyk container test akka-pulse:latest --severity-threshold=medium
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
