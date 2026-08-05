@@ -1,0 +1,56 @@
+name: Snyk Weekly Runtime Scan
+
+on:
+  schedule:
+    # Every Monday at 06:00 UTC
+    - cron: '0 6 * * 1'
+  workflow_dispatch: {}
+
+jobs:
+  # Discover the latest published runtime version by listing the image tags on
+  # the Akka registry and picking the highest semver.
+  resolve-latest-runtime:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.latest.outputs.version }}
+
+    steps:
+      - name: Resolve latest runtime version
+        id: latest
+        run: |
+          version=$(curl -sf https://registry.akka.io/v2/akka-runtime-postgres/tags/list \
+            | jq -r '.tags[]' \
+            | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
+            | sort -V | tail -1)
+          if [ -z "$version" ]; then
+            echo "Could not resolve latest runtime version" >&2
+            exit 1
+          fi
+          echo "Latest runtime version: $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  # Same scan as snyk-runtime-image-scan-akka-only in snyk-recommended-scans.yml,
+  # but against the latest runtime version resolved above.
+  snyk-runtime-image-scan-akka-only:
+    needs: resolve-latest-runtime
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build scan image (Akka runtime libs only, excludes legacy Kalix libs)
+        run: |
+          cat > /tmp/Dockerfile.scan <<EOF
+          FROM registry.akka.io/akka-runtime-postgres:${{ needs.resolve-latest-runtime.outputs.version }} AS source
+          FROM eclipse-temurin:21-jre-jammy
+          COPY --from=source /opt/docker/akka/lib/ /opt/docker/akka/lib/
+          EOF
+          docker build --platform linux/amd64 -f /tmp/Dockerfile.scan -t akka-runtime-scan:${{ needs.resolve-latest-runtime.outputs.version }} .
+
+      - name: Install Snyk CLI
+        run: npm install -g snyk
+
+      - name: Snyk scan Akka runtime libs
+        run: snyk container test akka-runtime-scan:${{ needs.resolve-latest-runtime.outputs.version }} --severity-threshold=medium
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
