@@ -1,0 +1,44 @@
+name: Configure Akka repository
+description: Write ~/.m2/settings.xml with the Akka Maven repository and plugin repository
+
+inputs:
+  akka-repo-url:
+    description: URL of the Akka Maven repository
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Write Maven settings
+      shell: bash
+      env:
+        AKKA_REPO_URL: ${{ inputs.akka-repo-url }}
+      run: |
+        mkdir -p ~/.m2
+        cat > ~/.m2/settings.xml <<EOF
+        <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                              https://maven.apache.org/xsd/settings-1.0.0.xsd">
+          <profiles>
+            <profile>
+              <id>akka-repo</id>
+              <repositories>
+                <repository>
+                  <id>akka-repository</id>
+                  <url>${AKKA_REPO_URL}</url>
+                </repository>
+              </repositories>
+              <pluginRepositories>
+                <pluginRepository>
+                  <id>akka-plugin-repository</id>
+                  <url>${AKKA_REPO_URL}</url>
+                </pluginRepository>
+              </pluginRepositories>
+            </profile>
+          </profiles>
+          <activeProfiles>
+            <activeProfile>akka-repo</activeProfile>
+          </activeProfiles>
+        </settings>
+        EOF
