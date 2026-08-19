@@ -101,6 +101,15 @@ curl http://localhost:9000/pulse/workflows/wf-1
 curl http://localhost:9000/pulse/consumers/synthetic-record-counter
 ```
 
+### Topic Message Counter
+
+Tracks messages published to the `synthetic-record-events` topic by the topic producer.
+Use it to observe cross-region publishing (one message per event in origin-only mode).
+
+```shell
+curl http://localhost:9000/pulse/topic-counter/synthetic-record-events
+```
+
 ### Timed Action
 
 ```shell
@@ -146,6 +155,28 @@ curl http://localhost:9000/pulse/jwt/test \
 
 ```shell
 curl http://localhost:9000/pulse/openapi.yaml
+```
+
+## Multi-Region Testing
+
+The service is designed for multi-region validation (replication, failover, recovery, and
+cross-region topic publishing). The health endpoint reports the current region identity:
+
+```shell
+curl http://localhost:9000/pulse/health
+# { "status": "UP", "region": "<region>", ... }
+```
+
+Topic publishing uses origin-based conditional publishing: a producer runs in every region,
+but in `origin-only` mode (default, set via `pulse.topic.publish-mode`) it publishes each
+event only from its origin region, so the topic receives each event exactly once. See the
+full scenario matrix and operational procedures in
+[specs/002-multi-region-test-service/quickstart.md](specs/002-multi-region-test-service/quickstart.md).
+
+Topic scenarios need a message broker. Enable a local one only when exercising topics:
+
+```shell
+mvn compile exec:java -Dakka.javasdk.dev-mode.eventing.support=kafka
 ```
 
 ## Security Scanning

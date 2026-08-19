@@ -11,7 +11,8 @@ import java.time.Instant;
 public class HealthCheckEntity extends KeyValueEntity<HealthCheckEntry> {
 
   public Effect<Done> set() {
-    var entry = new HealthCheckEntry(Instant.now(), "OK");
+    var region = commandContext().selfRegion();
+    var entry = new HealthCheckEntry(Instant.now(), "OK", region);
     return effects().updateState(entry).thenReply(Done.getInstance());
   }
 
