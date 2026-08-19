@@ -3,6 +3,7 @@ package com.example.api;
 import akka.javasdk.testkit.TestKit;
 import akka.javasdk.testkit.TestKitSupport;
 import com.example.api.JwtEndpoint;
+import com.example.domain.TopicMessageCounter;
 import org.junit.jupiter.api.Test;
 
 import java.util.Set;
@@ -26,8 +27,19 @@ public class PulseEndpointIntegrationTest extends TestKitSupport {
     assertThat(response.body().status()).isEqualTo("UP");
     assertThat(response.body().serviceName()).isEqualTo("akka-pulse");
     assertThat(response.body().version()).isEqualTo("1.0-SNAPSHOT");
+    assertThat(response.body().region()).isNotNull();
     assertThat(response.body().timestamp()).isNotNull();
     assertThat(response.body().persistenceCheck().status()).isEqualTo("OK");
     assertThat(response.body().persistenceCheck().latencyMs()).isGreaterThanOrEqualTo(0);
+  }
+
+  @Test
+  public void topicCounterEndpointReturnsEmptyForUnseenCounter() {
+    var response = httpClient.GET("/pulse/topic-counter/synthetic-record-events")
+        .responseBodyAs(TopicMessageCounter.class)
+        .invoke();
+
+    assertThat(response.status().isSuccess()).isTrue();
+    assertThat(response.body().messageCount()).isEqualTo(0);
   }
 }

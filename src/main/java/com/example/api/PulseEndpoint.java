@@ -15,10 +15,12 @@ import com.example.application.HealthCheckEntity;
 import com.example.application.SyntheticEntryEntity;
 import com.example.application.SyntheticRecordEntity;
 import com.example.application.SyntheticRecordView;
+import com.example.application.TopicMessageCounterEntity;
 import com.example.domain.ConsumerCounter;
 import com.example.domain.SyntheticEntry;
 import com.example.application.SyntheticTimedAction;
 import com.example.domain.SyntheticRecord;
+import com.example.domain.TopicMessageCounter;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -39,8 +41,8 @@ public class PulseEndpoint {
 
   public record PersistenceCheckResult(String status, long latencyMs) {}
   public record PersistenceCheckError(String status, String error) {}
-  public record HealthUpResponse(String status, String serviceName, String version, Instant timestamp, PersistenceCheckResult persistenceCheck) {}
-  public record HealthDownResponse(String status, String serviceName, String version, Instant timestamp, PersistenceCheckError persistenceCheck) {}
+  public record HealthUpResponse(String status, String serviceName, String version, String region, Instant timestamp, PersistenceCheckResult persistenceCheck) {}
+  public record HealthDownResponse(String status, String serviceName, String version, String region, Instant timestamp, PersistenceCheckError persistenceCheck) {}
 
   @Get("/health")
   public HttpResponse health() {
@@ -50,17 +52,17 @@ public class PulseEndpoint {
           .method(HealthCheckEntity::set)
           .invoke();
 
-      componentClient.forKeyValueEntity("heartbeat")
+      var entry = componentClient.forKeyValueEntity("heartbeat")
           .method(HealthCheckEntity::get)
           .invoke();
 
       long latencyMs = System.currentTimeMillis() - start;
       return HttpResponses.ok(new HealthUpResponse(
-          "UP", "akka-pulse", "1.0-SNAPSHOT", Instant.now(),
+          "UP", "akka-pulse", "1.0-SNAPSHOT", entry.region(), Instant.now(),
           new PersistenceCheckResult("OK", latencyMs)));
     } catch (Exception e) {
       var body = new HealthDownResponse(
-          "DOWN", "akka-pulse", "1.0-SNAPSHOT", Instant.now(),
+          "DOWN", "akka-pulse", "1.0-SNAPSHOT", "unknown", Instant.now(),
           new PersistenceCheckError("FAILED", "Persistence round-trip failed: " + e.getMessage()));
       return HttpResponse.create()
           .withStatus(akka.http.javadsl.model.StatusCodes.SERVICE_UNAVAILABLE)
@@ -146,6 +148,15 @@ public class PulseEndpoint {
   public ConsumerCounter getConsumerCounter(String counterId) {
     return componentClient.forKeyValueEntity(counterId)
         .method(ConsumerCounterEntity::get)
+        .invoke();
+  }
+
+  // --- Topic Message Counter (US6) ---
+
+  @Get("/topic-counter/{counterId}")
+  public TopicMessageCounter getTopicCounter(String counterId) {
+    return componentClient.forKeyValueEntity(counterId)
+        .method(TopicMessageCounterEntity::get)
         .invoke();
   }
 
