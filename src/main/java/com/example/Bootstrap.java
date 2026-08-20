@@ -4,6 +4,7 @@ import akka.javasdk.DependencyProvider;
 import akka.javasdk.ServiceSetup;
 import akka.javasdk.annotations.Setup;
 import com.example.api.JwtEndpoint;
+import com.example.application.PulseSecretSettings;
 import com.example.application.PulseTopicSettings;
 import com.typesafe.config.Config;
 import org.slf4j.Logger;
@@ -17,10 +18,16 @@ public class Bootstrap implements ServiceSetup {
   private static final Logger logger = LoggerFactory.getLogger(Bootstrap.class);
 
   private final PulseTopicSettings topicSettings;
+  private final PulseSecretSettings secretSettings;
 
   public Bootstrap(Config appConfig) {
     this.topicSettings = PulseTopicSettings.fromConfigValue(appConfig.getString("pulse.topic.publish-mode"));
     logger.info("Topic publish mode: {}", topicSettings.mode());
+    this.secretSettings = PulseSecretSettings.fromConfig(
+        appConfig.getString("pulse.secrets.env-prefix"),
+        appConfig.getString("pulse.secrets.file-dir"));
+    logger.info("Secret probe env-prefix={} file-dir={}",
+        secretSettings.envPrefix(), secretSettings.fileDir());
   }
 
   @Override
@@ -43,6 +50,9 @@ public class Bootstrap implements ServiceSetup {
       public <T> T getDependency(Class<T> clazz) {
         if (clazz == PulseTopicSettings.class) {
           return (T) topicSettings;
+        }
+        if (clazz == PulseSecretSettings.class) {
+          return (T) secretSettings;
         }
         throw new RuntimeException("No such dependency found: " + clazz);
       }
