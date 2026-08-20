@@ -151,6 +151,34 @@ curl http://localhost:9000/pulse/jwt/test \
   -H "Authorization: Bearer <your-jwt-token>"
 ```
 
+### External Secrets
+
+Verifies that secrets injected by the platform reach the running service. It reads secrets
+from environment variables and from volume-mounted files. This is a synthetic test probe. It
+returns the full value so you can confirm the exact injected content. Do not point it at real
+production secrets.
+
+Two settings control the probe (defaults shown):
+
+- `pulse.secrets.env-prefix` (`PULSE_`) — env override `PULSE_SECRETS_ENV_PREFIX`. The list
+  probe reports environment variables with this prefix.
+- `pulse.secrets.file-dir` (`/secrets/pulse-test-file`) — env override `PULSE_SECRETS_FILE_DIR`.
+  The directory where file-mounted secrets are read.
+
+```shell
+# Read a secret from an environment variable
+curl http://localhost:9000/pulse/secrets/env/PULSE_TEST_SECRET
+
+# Read a secret from a mounted file
+curl http://localhost:9000/pulse/secrets/file/db-password
+
+# List all Pulse test secrets from both sources
+curl http://localhost:9000/pulse/secrets/
+```
+
+Each result reports a `status`: `PRESENT`, `EMPTY` (file exists but is empty), or `ERROR` (file
+could not be read). A missing secret returns `404` and never fails the service.
+
 ### OpenAPI Spec
 
 ```shell
