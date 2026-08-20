@@ -33,7 +33,8 @@ public class SecretEndpointIntegrationTest extends TestKitSupport {
   protected TestKit.Settings testKitSettings() {
     return TestKit.Settings.DEFAULT
         .withDisabledComponents(Set.of(JwtEndpoint.class))
-        .withAdditionalConfig("pulse.secrets.file-dir = \"" + SECRETS_DIR + "\"");
+        .withAdditionalConfig("pulse.secrets.file-dir = \"" + SECRETS_DIR + "\"\n"
+            + "pulse.file-secrets.demo-key = from-config");
   }
 
   @Test
@@ -106,6 +107,38 @@ public class SecretEndpointIntegrationTest extends TestKitSupport {
           assertThat(e.name()).isEqualTo("empty-secret");
           assertThat(e.status()).isEqualTo(SecretEndpoint.EMPTY);
         });
+  }
+
+  @Test
+  public void loadReadsFromFileWhenPresent() {
+    // 'api-token' exists as a mounted file, so the file value wins.
+    var response = httpClient.GET("/pulse/secrets/load/api-token")
+        .responseBodyAs(SecretEndpoint.LoadedSecretResponse.class)
+        .invoke();
+
+    assertThat(response.status().isSuccess()).isTrue();
+    assertThat(response.body().value()).isEqualTo("s3cr3t-value");
+    assertThat(response.body().source()).isEqualTo("file");
+  }
+
+  @Test
+  public void loadFallsBackToConfigWhenNoFile() {
+    // 'demo-key' has no file, so the value comes from pulse.file-secrets.demo-key.
+    var response = httpClient.GET("/pulse/secrets/load/demo-key")
+        .responseBodyAs(SecretEndpoint.LoadedSecretResponse.class)
+        .invoke();
+
+    assertThat(response.status().isSuccess()).isTrue();
+    assertThat(response.body().value()).isEqualTo("from-config");
+    assertThat(response.body().source()).isEqualTo("config");
+  }
+
+  @Test
+  public void loadMissingSecretReturnsNotFound() {
+    var response = httpClient.GET("/pulse/secrets/load/nope")
+        .invoke();
+
+    assertThat(response.status().intValue()).isEqualTo(404);
   }
 
   private static Map.Entry<String, String> anyEnvVar() {

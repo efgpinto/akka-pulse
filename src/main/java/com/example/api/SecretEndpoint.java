@@ -6,6 +6,8 @@ import akka.javasdk.annotations.http.Get;
 import akka.javasdk.annotations.http.HttpEndpoint;
 import akka.javasdk.http.HttpResponses;
 import com.example.application.PulseSecretSettings;
+import com.example.application.SecretLoader;
+import com.typesafe.config.Config;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -40,10 +42,15 @@ public class SecretEndpoint {
   public record AllSecretsResponse(
       List<SecretEntry> envSecrets, List<SecretEntry> fileSecrets, Instant readAt) {}
 
-  private final PulseSecretSettings settings;
+  public record LoadedSecretResponse(
+      String name, String value, String source, Instant readAt) {}
 
-  public SecretEndpoint(PulseSecretSettings settings) {
+  private final PulseSecretSettings settings;
+  private final Config config;
+
+  public SecretEndpoint(PulseSecretSettings settings, Config config) {
     this.settings = settings;
+    this.config = config;
   }
 
   // Read a secret from a named environment variable.
@@ -77,6 +84,22 @@ public class SecretEndpoint {
   @Get("/")
   public AllSecretsResponse getAllPulseSecrets() {
     return new AllSecretsResponse(envSecrets(), fileSecrets(), Instant.now());
+  }
+
+  // Load a secret with SecretLoader: the mounted file wins, else the config value. The file
+  // lives at <file-dir>/<name>; the config fallback is pulse.file-secrets.<name>.
+  @Get("/load/{name}")
+  public HttpResponse loadSecret(String name) {
+    var filePath = settings.fileDir() + "/" + name;
+    var configPath = "pulse.file-secrets.\"" + name + "\"";
+    var fromFile = Files.isRegularFile(Path.of(filePath));
+    if (!fromFile && !config.hasPath(configPath)) {
+      return HttpResponses.notFound(
+          "No secret file at " + filePath + " and no config at pulse.file-secrets." + name);
+    }
+    var value = SecretLoader.load(config, filePath, configPath);
+    return HttpResponses.ok(
+        new LoadedSecretResponse(name, value, fromFile ? "file" : "config", Instant.now()));
   }
 
   private List<SecretEntry> envSecrets() {
