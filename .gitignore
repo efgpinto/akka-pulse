@@ -28,3 +28,6 @@ db.mv.db
 akka-context/
 .claude/settings.local.json
 
+
+# Local environment variables (may contain secrets)
+.env
