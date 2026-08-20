@@ -15,6 +15,7 @@ public class SyntheticTopicConsumerIntegrationTest extends TestKitSupport {
   @Override
   protected TestKit.Settings testKitSettings() {
     return TestKit.Settings.DEFAULT
+        .withAdditionalConfig("pulse.topic.enabled = true")
         .withTopicIncomingMessages("synthetic-record-events");
   }
 

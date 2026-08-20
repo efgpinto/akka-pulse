@@ -201,11 +201,17 @@ event only from its origin region, so the topic receives each event exactly once
 full scenario matrix and operational procedures in
 [specs/002-multi-region-test-service/quickstart.md](specs/002-multi-region-test-service/quickstart.md).
 
-Topic scenarios need a message broker. Enable a local one only when exercising topics:
+Topic scenarios need a message broker. The topic components (`SyntheticTopicProducer` and
+`SyntheticTopicConsumer`) are disabled by default (`pulse.topic.enabled = false`) so the
+service starts in projects without a broker. Enable them and start a local broker only when
+exercising topics:
 
 ```shell
-mvn compile exec:java -Dakka.javasdk.dev-mode.eventing.support=kafka
+PULSE_TOPIC_ENABLED=true mvn compile exec:java -Dakka.javasdk.dev-mode.eventing.support=kafka
 ```
+
+On the platform, set `PULSE_TOPIC_ENABLED=true` only in projects that have a message broker
+configured.
 
 ## Security Scanning
 
