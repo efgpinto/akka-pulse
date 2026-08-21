@@ -183,6 +183,17 @@ public class SecretEndpointIntegrationTest extends TestKitSupport {
     assertThat(response.status().intValue()).isEqualTo(404);
   }
 
+  @Test
+  public void valueByKeyUsesConfiguredBundle() {
+    // No bundle name in the URL — resolved from pulse.secrets.dotenv-file (default app-config).
+    var response = httpClient.GET("/pulse/secrets/value/API_KEY")
+        .responseBodyAs(String.class)
+        .invoke();
+
+    assertThat(response.status().isSuccess()).isTrue();
+    assertThat(response.body()).isEqualTo("abc123");
+  }
+
   private static Map.Entry<String, String> anyEnvVar() {
     return System.getenv().entrySet().stream()
         .filter(e -> !e.getValue().isEmpty())

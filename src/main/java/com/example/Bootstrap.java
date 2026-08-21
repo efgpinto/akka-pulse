@@ -29,7 +29,8 @@ public class Bootstrap implements ServiceSetup {
     logger.info("Topic publish mode: {}", topicSettings.mode());
     this.secretSettings = PulseSecretSettings.fromConfig(
         appConfig.getString("pulse.secrets.env-prefix"),
-        appConfig.getString("pulse.secrets.file-dir"));
+        appConfig.getString("pulse.secrets.file-dir"),
+        appConfig.getString("pulse.secrets.dotenv-file"));
     logger.info("Secret probe env-prefix={} file-dir={}",
         secretSettings.envPrefix(), secretSettings.fileDir());
     this.topicEnabled = appConfig.getBoolean("pulse.topic.enabled");
