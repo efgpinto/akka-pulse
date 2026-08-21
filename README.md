@@ -174,10 +174,60 @@ curl http://localhost:9000/pulse/secrets/file/db-password
 
 # List all Pulse test secrets from both sources
 curl http://localhost:9000/pulse/secrets/
+
+# Load a secret: mounted file wins, else config (pulse.file-secrets.<name>)
+curl http://localhost:9000/pulse/secrets/load/client-password
 ```
 
 Each result reports a `status`: `PRESENT`, `EMPTY` (file exists but is empty), or `ERROR` (file
 could not be read). A missing secret returns `404` and never fails the service.
+
+#### Loading a secret in application code (`SecretLoader`)
+
+`SecretLoader` is the pattern a real service uses to read a secret the same way locally and when
+deployed:
+
+```java
+String pw = SecretLoader.load(config, "/secrets/pulse-test-file/client-password",
+                              "pulse.file-secrets.client-password");
+```
+
+- **Deployed:** the mounted file wins — e.g. an external secret from Azure Key Vault.
+- **Local:** no file, so it falls back to config. Seed that key from an env var:
+  `pulse.file-secrets.client-password = ${?PULSE_CLIENT_PASSWORD}`.
+
+The `/pulse/secrets/load/{name}` probe exercises exactly this and reports the winning `source`
+(`file` or `config`).
+
+Note: `.env` files are not auto-loaded by `mvn exec:java`. Load them yourself:
+
+```shell
+set -a; source .env; set +a
+mvn compile exec:java
+```
+
+#### Wiring an Azure Key Vault external secret
+
+External secrets (AKV) mount as **files only** and authenticate via workload identity (no stored
+credentials). Outline (see [docs/external-secrets-notes.md](docs/external-secrets-notes.md) for the
+full walk-through, gotchas, and open questions):
+
+1. Create the vault + secret; grant the service's app principal `get` on secrets.
+2. Add a **federated credential** on the app for the Akka OIDC issuer + subject
+   `system:serviceaccount:<project-id>:klx-<service-name>`.
+   **The issuer must include the trailing slash** — `akka projects regions workload-identity-info`
+   prints it without, which causes `AADSTS700211`.
+3. Register the external secret: `akka secret external create azure <name> --key-vault-name … --tenant-id … --client-id … --object-name <secret> --object-type secret`.
+4. Mount it via a service descriptor (no CLI flag) and `akka service apply`:
+   ```yaml
+   name: <service>
+   service:
+     image: …
+     volumeMounts:
+     - mountPath: /secrets/pulse-test-file
+       externalSecret:
+         provider: <name>
+   ```
 
 ### OpenAPI Spec
 
