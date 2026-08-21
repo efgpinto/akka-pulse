@@ -5,6 +5,7 @@ import akka.javasdk.annotations.Acl;
 import akka.javasdk.annotations.http.Get;
 import akka.javasdk.annotations.http.HttpEndpoint;
 import akka.javasdk.http.HttpResponses;
+import com.example.application.DotEnv;
 import com.example.application.PulseSecretSettings;
 import com.example.application.SecretLoader;
 import com.typesafe.config.Config;
@@ -15,6 +16,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -44,6 +46,9 @@ public class SecretEndpoint {
 
   public record LoadedSecretResponse(
       String name, String value, String source, Instant readAt) {}
+
+  public record DotEnvResponse(
+      String name, Map<String, String> entries, int count, Instant readAt) {}
 
   private final PulseSecretSettings settings;
   private final Config config;
@@ -100,6 +105,20 @@ public class SecretEndpoint {
     var value = SecretLoader.load(config, filePath, configPath);
     return HttpResponses.ok(
         new LoadedSecretResponse(name, value, fromFile ? "file" : "config", Instant.now()));
+  }
+
+  // Load a secret that bundles multiple values as a .env document (KEY=VALUE lines) and return
+  // the parsed entries. Demonstrates one secret object holding many values (file wins, else config).
+  @Get("/dotenv/{name}")
+  public HttpResponse getDotEnvSecret(String name) {
+    var filePath = settings.fileDir() + "/" + name;
+    var configPath = "pulse.file-secrets.\"" + name + "\"";
+    if (!Files.isRegularFile(Path.of(filePath)) && !config.hasPath(configPath)) {
+      return HttpResponses.notFound(
+          "No secret file at " + filePath + " and no config at pulse.file-secrets." + name);
+    }
+    var entries = DotEnv.parse(SecretLoader.load(config, filePath, configPath));
+    return HttpResponses.ok(new DotEnvResponse(name, entries, entries.size(), Instant.now()));
   }
 
   private List<SecretEntry> envSecrets() {
