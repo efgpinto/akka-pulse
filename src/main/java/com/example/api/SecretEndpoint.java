@@ -5,10 +5,7 @@ import akka.javasdk.annotations.Acl;
 import akka.javasdk.annotations.http.Get;
 import akka.javasdk.annotations.http.HttpEndpoint;
 import akka.javasdk.http.HttpResponses;
-import com.example.application.DotEnv;
-import com.example.application.PulseSecretSettings;
 import com.example.application.SecretLoader;
-import com.typesafe.config.Config;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -16,7 +13,6 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -47,15 +43,10 @@ public class SecretEndpoint {
   public record LoadedSecretResponse(
       String name, String value, String source, Instant readAt) {}
 
-  public record DotEnvResponse(
-      String name, Map<String, String> entries, int count, Instant readAt) {}
+  private final SecretLoader secretLoader;
 
-  private final PulseSecretSettings settings;
-  private final Config config;
-
-  public SecretEndpoint(PulseSecretSettings settings, Config config) {
-    this.settings = settings;
-    this.config = config;
+  public SecretEndpoint(SecretLoader secretLoader) {
+    this.secretLoader = secretLoader;
   }
 
   // Read a secret from a named environment variable.
@@ -72,7 +63,7 @@ public class SecretEndpoint {
   // Read a secret from a file in the configured secrets directory.
   @Get("/file/{fileName}")
   public HttpResponse getFileSecret(String fileName) {
-    var path = Path.of(settings.fileDir(), fileName);
+    var path = Path.of(secretLoader.fileDir(), fileName);
     if (!Files.exists(path)) {
       return HttpResponses.notFound("Secret file not found at " + path);
     }
@@ -91,63 +82,40 @@ public class SecretEndpoint {
     return new AllSecretsResponse(envSecrets(), fileSecrets(), Instant.now());
   }
 
-  // Load a secret with SecretLoader: the mounted file wins, else the config value. The file
-  // lives at <file-dir>/<name>; the config fallback is pulse.file-secrets.<name>.
+  // Load a secret with SecretLoader: the mounted file wins, else the config value
+  // (pulse.file-secrets.<name>).
   @Get("/load/{name}")
   public HttpResponse loadSecret(String name) {
-    var filePath = settings.fileDir() + "/" + name;
-    var configPath = "pulse.file-secrets.\"" + name + "\"";
-    var fromFile = Files.isRegularFile(Path.of(filePath));
-    if (!fromFile && !config.hasPath(configPath)) {
-      return HttpResponses.notFound(
-          "No secret file at " + filePath + " and no config at pulse.file-secrets." + name);
+    if (!secretLoader.exists(name)) {
+      return HttpResponses.notFound(notFoundMessage(name));
     }
-    var value = SecretLoader.load(config, filePath, configPath);
+    var source = secretLoader.isFile(name) ? "file" : "config";
     return HttpResponses.ok(
-        new LoadedSecretResponse(name, value, fromFile ? "file" : "config", Instant.now()));
+        new LoadedSecretResponse(name, secretLoader.load(name), source, Instant.now()));
   }
 
-  // Load a secret that bundles multiple values as a .env document (KEY=VALUE lines) and return
-  // the parsed entries. Demonstrates one secret object holding many values (file wins, else config).
-  @Get("/dotenv/{name}")
-  public HttpResponse getDotEnvSecret(String name) {
-    var filePath = settings.fileDir() + "/" + name;
-    var configPath = "pulse.file-secrets.\"" + name + "\"";
-    if (!Files.isRegularFile(Path.of(filePath)) && !config.hasPath(configPath)) {
-      return HttpResponses.notFound(
-          "No secret file at " + filePath + " and no config at pulse.file-secrets." + name);
-    }
-    var entries = DotEnv.parse(SecretLoader.load(config, filePath, configPath));
-    return HttpResponses.ok(new DotEnvResponse(name, entries, entries.size(), Instant.now()));
-  }
-
-  // Read a single value from a .env-bundled secret by key. Returns the raw value as text.
-  @Get("/dotenv/{name}/{key}")
-  public HttpResponse getDotEnvValue(String name, String key) {
-    var filePath = settings.fileDir() + "/" + name;
-    var configPath = "pulse.file-secrets.\"" + name + "\"";
-    if (!Files.isRegularFile(Path.of(filePath)) && !config.hasPath(configPath)) {
-      return HttpResponses.notFound(
-          "No secret file at " + filePath + " and no config at pulse.file-secrets." + name);
-    }
-    var value = DotEnv.parse(SecretLoader.load(config, filePath, configPath)).get(key);
+  // Read a single value by key from the configured .env bundle (pulse.secrets.dotenv-file),
+  // which is parsed once at bootstrap. The caller passes only the key.
+  @Get("/value/{key}")
+  public HttpResponse getConfiguredValue(String key) {
+    var value = secretLoader.dotEnv().get(key);
     if (value == null) {
-      return HttpResponses.notFound("Key '" + key + "' not found in secret '" + name + "'");
+      return HttpResponses.notFound(
+          "Key '" + key + "' not found in the configured secret bundle '"
+              + secretLoader.dotenvFile() + "'");
     }
     return HttpResponses.ok(value);
   }
 
-  // Read a single value by key from the configured .env bundle (pulse.secrets.dotenv-file).
-  // The caller passes only the key; the bundle secret is resolved by convention.
-  @Get("/value/{key}")
-  public HttpResponse getConfiguredValue(String key) {
-    return getDotEnvValue(settings.dotenvFile(), key);
+  private String notFoundMessage(String name) {
+    return "No secret file at " + secretLoader.fileDir() + "/" + name
+        + " and no config at pulse.file-secrets." + name;
   }
 
   private List<SecretEntry> envSecrets() {
     var entries = new ArrayList<SecretEntry>();
     System.getenv().entrySet().stream()
-        .filter(e -> e.getKey().startsWith(settings.envPrefix()))
+        .filter(e -> e.getKey().startsWith(secretLoader.envPrefix()))
         .sorted(java.util.Map.Entry.comparingByKey())
         .forEach(e ->
             entries.add(new SecretEntry(e.getKey(), e.getValue(), "env", statusOf(e.getValue()))));
@@ -156,7 +124,7 @@ public class SecretEndpoint {
 
   private List<SecretEntry> fileSecrets() {
     var entries = new ArrayList<SecretEntry>();
-    var dir = Path.of(settings.fileDir());
+    var dir = Path.of(secretLoader.fileDir());
     if (!Files.isDirectory(dir)) {
       return entries;
     }

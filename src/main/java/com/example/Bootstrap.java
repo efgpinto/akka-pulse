@@ -4,8 +4,8 @@ import akka.javasdk.DependencyProvider;
 import akka.javasdk.ServiceSetup;
 import akka.javasdk.annotations.Setup;
 import com.example.api.JwtEndpoint;
-import com.example.application.PulseSecretSettings;
 import com.example.application.PulseTopicSettings;
+import com.example.application.SecretLoader;
 import com.example.application.SyntheticTopicConsumer;
 import com.example.application.SyntheticTopicProducer;
 import com.typesafe.config.Config;
@@ -21,18 +21,15 @@ public class Bootstrap implements ServiceSetup {
   private static final Logger logger = LoggerFactory.getLogger(Bootstrap.class);
 
   private final PulseTopicSettings topicSettings;
-  private final PulseSecretSettings secretSettings;
+  private final SecretLoader secretLoader;
   private final boolean topicEnabled;
 
   public Bootstrap(Config appConfig) {
     this.topicSettings = PulseTopicSettings.fromConfigValue(appConfig.getString("pulse.topic.publish-mode"));
     logger.info("Topic publish mode: {}", topicSettings.mode());
-    this.secretSettings = PulseSecretSettings.fromConfig(
-        appConfig.getString("pulse.secrets.env-prefix"),
-        appConfig.getString("pulse.secrets.file-dir"),
-        appConfig.getString("pulse.secrets.dotenv-file"));
-    logger.info("Secret probe env-prefix={} file-dir={}",
-        secretSettings.envPrefix(), secretSettings.fileDir());
+    this.secretLoader = SecretLoader.fromConfig(appConfig);
+    logger.info("Secret probe env-prefix={} file-dir={} dotenv-file={}",
+        secretLoader.envPrefix(), secretLoader.fileDir(), secretLoader.dotenvFile());
     this.topicEnabled = appConfig.getBoolean("pulse.topic.enabled");
   }
 
@@ -68,8 +65,8 @@ public class Bootstrap implements ServiceSetup {
         if (clazz == PulseTopicSettings.class) {
           return (T) topicSettings;
         }
-        if (clazz == PulseSecretSettings.class) {
-          return (T) secretSettings;
+        if (clazz == SecretLoader.class) {
+          return (T) secretLoader;
         }
         throw new RuntimeException("No such dependency found: " + clazz);
       }

@@ -144,54 +144,23 @@ public class SecretEndpointIntegrationTest extends TestKitSupport {
   }
 
   @Test
-  public void dotEnvSecretParsesBundledValues() {
-    var response = httpClient.GET("/pulse/secrets/dotenv/app-config")
-        .responseBodyAs(SecretEndpoint.DotEnvResponse.class)
-        .invoke();
-
-    assertThat(response.status().isSuccess()).isTrue();
-    assertThat(response.body().count()).isEqualTo(3);
-    assertThat(response.body().entries())
-        .containsEntry("DB_USER", "pulse")
-        .containsEntry("DB_PASSWORD", "hunter2")
-        .containsEntry("API_KEY", "abc123");
-  }
-
-  @Test
-  public void dotEnvMissingSecretReturnsNotFound() {
-    var response = httpClient.GET("/pulse/secrets/dotenv/nope")
-        .invoke();
-
-    assertThat(response.status().intValue()).isEqualTo(404);
-  }
-
-  @Test
-  public void dotEnvValueByKeyReturnsSingleValue() {
-    var response = httpClient.GET("/pulse/secrets/dotenv/app-config/DB_PASSWORD")
-        .responseBodyAs(String.class)
-        .invoke();
-
-    assertThat(response.status().isSuccess()).isTrue();
-    assertThat(response.body()).isEqualTo("hunter2");
-  }
-
-  @Test
-  public void dotEnvValueMissingKeyReturnsNotFound() {
-    var response = httpClient.GET("/pulse/secrets/dotenv/app-config/NOPE")
-        .invoke();
-
-    assertThat(response.status().intValue()).isEqualTo(404);
-  }
-
-  @Test
   public void valueByKeyUsesConfiguredBundle() {
-    // No bundle name in the URL — resolved from pulse.secrets.dotenv-file (default app-config).
+    // No bundle name in the URL — resolved from pulse.secrets.dotenv-file (default app-config),
+    // parsed at bootstrap.
     var response = httpClient.GET("/pulse/secrets/value/API_KEY")
         .responseBodyAs(String.class)
         .invoke();
 
     assertThat(response.status().isSuccess()).isTrue();
     assertThat(response.body()).isEqualTo("abc123");
+  }
+
+  @Test
+  public void valueMissingKeyReturnsNotFound() {
+    var response = httpClient.GET("/pulse/secrets/value/NOPE")
+        .invoke();
+
+    assertThat(response.status().intValue()).isEqualTo(404);
   }
 
   private static Map.Entry<String, String> anyEnvVar() {
