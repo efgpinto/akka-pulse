@@ -165,6 +165,24 @@ public class SecretEndpointIntegrationTest extends TestKitSupport {
     assertThat(response.status().intValue()).isEqualTo(404);
   }
 
+  @Test
+  public void dotEnvValueByKeyReturnsSingleValue() {
+    var response = httpClient.GET("/pulse/secrets/dotenv/app-config/DB_PASSWORD")
+        .responseBodyAs(String.class)
+        .invoke();
+
+    assertThat(response.status().isSuccess()).isTrue();
+    assertThat(response.body()).isEqualTo("hunter2");
+  }
+
+  @Test
+  public void dotEnvValueMissingKeyReturnsNotFound() {
+    var response = httpClient.GET("/pulse/secrets/dotenv/app-config/NOPE")
+        .invoke();
+
+    assertThat(response.status().intValue()).isEqualTo(404);
+  }
+
   private static Map.Entry<String, String> anyEnvVar() {
     return System.getenv().entrySet().stream()
         .filter(e -> !e.getValue().isEmpty())
