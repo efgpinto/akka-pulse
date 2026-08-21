@@ -121,6 +121,22 @@ public class SecretEndpoint {
     return HttpResponses.ok(new DotEnvResponse(name, entries, entries.size(), Instant.now()));
   }
 
+  // Read a single value from a .env-bundled secret by key. Returns the raw value as text.
+  @Get("/dotenv/{name}/{key}")
+  public HttpResponse getDotEnvValue(String name, String key) {
+    var filePath = settings.fileDir() + "/" + name;
+    var configPath = "pulse.file-secrets.\"" + name + "\"";
+    if (!Files.isRegularFile(Path.of(filePath)) && !config.hasPath(configPath)) {
+      return HttpResponses.notFound(
+          "No secret file at " + filePath + " and no config at pulse.file-secrets." + name);
+    }
+    var value = DotEnv.parse(SecretLoader.load(config, filePath, configPath)).get(key);
+    if (value == null) {
+      return HttpResponses.notFound("Key '" + key + "' not found in secret '" + name + "'");
+    }
+    return HttpResponses.ok(value);
+  }
+
   private List<SecretEntry> envSecrets() {
     var entries = new ArrayList<SecretEntry>();
     System.getenv().entrySet().stream()
