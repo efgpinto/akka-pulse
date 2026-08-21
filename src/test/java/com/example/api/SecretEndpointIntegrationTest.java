@@ -23,6 +23,8 @@ public class SecretEndpointIntegrationTest extends TestKitSupport {
       var dir = Files.createTempDirectory("pulse-secret-test");
       Files.writeString(dir.resolve("api-token"), "s3cr3t-value\n");
       Files.writeString(dir.resolve("empty-secret"), "");
+      Files.writeString(dir.resolve("app-config"),
+          "# app config bundle\nDB_USER=pulse\nDB_PASSWORD=hunter2\nAPI_KEY=abc123\n");
       return dir;
     } catch (IOException e) {
       throw new UncheckedIOException(e);
@@ -136,6 +138,28 @@ public class SecretEndpointIntegrationTest extends TestKitSupport {
   @Test
   public void loadMissingSecretReturnsNotFound() {
     var response = httpClient.GET("/pulse/secrets/load/nope")
+        .invoke();
+
+    assertThat(response.status().intValue()).isEqualTo(404);
+  }
+
+  @Test
+  public void dotEnvSecretParsesBundledValues() {
+    var response = httpClient.GET("/pulse/secrets/dotenv/app-config")
+        .responseBodyAs(SecretEndpoint.DotEnvResponse.class)
+        .invoke();
+
+    assertThat(response.status().isSuccess()).isTrue();
+    assertThat(response.body().count()).isEqualTo(3);
+    assertThat(response.body().entries())
+        .containsEntry("DB_USER", "pulse")
+        .containsEntry("DB_PASSWORD", "hunter2")
+        .containsEntry("API_KEY", "abc123");
+  }
+
+  @Test
+  public void dotEnvMissingSecretReturnsNotFound() {
+    var response = httpClient.GET("/pulse/secrets/dotenv/nope")
         .invoke();
 
     assertThat(response.status().intValue()).isEqualTo(404);
