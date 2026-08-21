@@ -137,6 +137,13 @@ public class SecretEndpoint {
     return HttpResponses.ok(value);
   }
 
+  // Read a single value by key from the configured .env bundle (pulse.secrets.dotenv-file).
+  // The caller passes only the key; the bundle secret is resolved by convention.
+  @Get("/value/{key}")
+  public HttpResponse getConfiguredValue(String key) {
+    return getDotEnvValue(settings.dotenvFile(), key);
+  }
+
   private List<SecretEntry> envSecrets() {
     var entries = new ArrayList<SecretEntry>();
     System.getenv().entrySet().stream()
