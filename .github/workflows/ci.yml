@@ -7,7 +7,8 @@ on:
     branches: [main]
 
 env:
-  DOCKER_IMAGE: ${{ vars.DOCKERHUB_USERNAME }}/akka-pulse
+  DOCKER_IMAGE_CORE: ${{ vars.DOCKERHUB_USERNAME }}/pulse-core
+  DOCKER_IMAGE_PEER: ${{ vars.DOCKERHUB_USERNAME }}/pulse-peer
 
 jobs:
   build-and-test:
@@ -64,10 +65,10 @@ jobs:
         run: npm install -g snyk
 
       - name: List deployed SDK JARs
-        run: ls -la target/docker/akka-pulse/latest/build/maven/
+        run: ls -la pulse-core/target/docker/pulse-core/latest/build/maven/
 
       - name: Snyk scan SDK dependencies
-        run: snyk test --scan-all-unmanaged --severity-threshold=medium -- --target-dir=target/docker/akka-pulse/latest/build/maven/
+        run: snyk test --scan-all-unmanaged --severity-threshold=medium -- --target-dir=pulse-core/target/docker/pulse-core/latest/build/maven/
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
@@ -103,9 +104,13 @@ jobs:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Tag and push image
+      - name: Tag and push images
         run: |
-          docker tag akka-pulse:${{ env.SHORT_SHA }} ${{ env.DOCKER_IMAGE }}:${{ env.SHORT_SHA }}
-          docker tag akka-pulse:${{ env.SHORT_SHA }} ${{ env.DOCKER_IMAGE }}:latest
-          docker push ${{ env.DOCKER_IMAGE }}:${{ env.SHORT_SHA }}
-          docker push ${{ env.DOCKER_IMAGE }}:latest
+          docker tag pulse-core:${{ env.SHORT_SHA }} ${{ env.DOCKER_IMAGE_CORE }}:${{ env.SHORT_SHA }}
+          docker tag pulse-core:${{ env.SHORT_SHA }} ${{ env.DOCKER_IMAGE_CORE }}:latest
+          docker push ${{ env.DOCKER_IMAGE_CORE }}:${{ env.SHORT_SHA }}
+          docker push ${{ env.DOCKER_IMAGE_CORE }}:latest
+          docker tag pulse-peer:${{ env.SHORT_SHA }} ${{ env.DOCKER_IMAGE_PEER }}:${{ env.SHORT_SHA }}
+          docker tag pulse-peer:${{ env.SHORT_SHA }} ${{ env.DOCKER_IMAGE_PEER }}:latest
+          docker push ${{ env.DOCKER_IMAGE_PEER }}:${{ env.SHORT_SHA }}
+          docker push ${{ env.DOCKER_IMAGE_PEER }}:latest

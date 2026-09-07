@@ -81,8 +81,8 @@ the restricted endpoint; core unaffected when peer absent.
 
 **Independent Test**: descriptors validate; applying `project-core.yaml` yields a healthy pulse-core.
 
-- [ ] T021 [US3] Derive descriptor schema from the current project (`akka project export` or docs) and create `deploy/project-core.yaml` (pulse-core only) and `deploy/project-full.yaml` (pulse-core + pulse-peer), image tags as documented placeholders (R8)
-- [ ] T022 [US3] Validate both descriptors (akka project validate if available; otherwise structural review against export output) and document apply/tear-down flow in the descriptors' header comments
+- [x] T021 [US3] Derive descriptor schema from the current project (`akka project export` or docs) and create `deploy/project-core.yaml` (pulse-core only) and `deploy/project-full.yaml` (pulse-core + pulse-peer), image tags as documented placeholders (R8)
+- [x] T022 [US3] Validate both descriptors (akka project validate if available; otherwise structural review against export output) and document apply/tear-down flow in the descriptors' header comments
 
 **Checkpoint**: deployment shape versioned with the code.
 
@@ -90,9 +90,9 @@ the restricted endpoint; core unaffected when peer absent.
 
 ## Phase 5: Polish & Cross-Cutting
 
-- [ ] T023 [P] Update `README.md`: multi-module layout, per-module build/run commands, peer probe endpoints, descriptor-based deploy (replace `akka service deploy akka-pulse ...`), service naming pulse-core/pulse-peer
-- [ ] T024 [P] Sweep remaining references to single-module layout (`docs/*.md`, `.github/workflows/*` paths like `src/`, snyk scan paths, `CLAUDE.md`/`AGENTS.md` if they reference build commands) and fix
-- [ ] T025 Run quickstart.md local validation: start pulse-core (`cd pulse-core && mvn compile exec:java`), curl `/pulse/health` and one pre-split probe; record results in the feature dir
+- [x] T023 [P] Update `README.md`: multi-module layout, per-module build/run commands, peer probe endpoints, descriptor-based deploy (replace `akka service deploy akka-pulse ...`), service naming pulse-core/pulse-peer
+- [x] T024 [P] Sweep remaining references to single-module layout (`docs/*.md`, `.github/workflows/*` paths like `src/`, snyk scan paths, `CLAUDE.md`/`AGENTS.md` if they reference build commands) and fix
+- [x] T025 Run quickstart.md local validation: start pulse-core (`cd pulse-core && mvn compile exec:java`), curl `/pulse/health` and one pre-split probe; record results in the feature dir
 
 ---
 

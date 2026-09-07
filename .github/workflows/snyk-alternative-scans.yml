@@ -113,12 +113,12 @@ jobs:
         run: mvn clean install -DskipTests
 
       - name: Show built image
-        run: docker images akka-pulse
+        run: docker images pulse-core
 
       - name: Install Snyk CLI
         run: npm install -g snyk
 
       - name: Snyk scan application image
-        run: snyk container test akka-pulse:latest --severity-threshold=medium
+        run: snyk container test pulse-core:latest --severity-threshold=medium
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}

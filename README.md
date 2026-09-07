@@ -2,6 +2,21 @@
 
 A synthetic test service built on [Akka SDK](https://doc.akka.io/sdk/index.html) that exercises every component type for infrastructure validation. Deploy to any environment and verify that all platform components are working correctly.
 
+## Project Layout
+
+Maven multi-module project. The repository maps one-to-one to an Akka project; the deployed
+shape is declared in versioned descriptors under `deploy/`.
+
+| Module | Type | Purpose |
+|--------|------|---------|
+| pulse-common | Library jar | Reusable components discovered from the classpath: health check endpoint + entity, `SecretLoader`, public stream event types. Not deployable. |
+| pulse-core | Service | The main synthetic test service (all components below). Image/service name `pulse-core`. |
+| pulse-peer | Service (on demand) | Deployed only to validate service-to-service settings. Image/service name `pulse-peer`. |
+
+pulse-common is compiled with the Akka SDK annotation processor, so its components ship a
+component descriptor in the jar and are served by any service that depends on it. This is
+itself one of the platform features under test.
+
 ## Components
 
 | Component | Type | Purpose |
@@ -14,6 +29,12 @@ A synthetic test service built on [Akka SDK](https://doc.akka.io/sdk/index.html)
 | SyntheticWorkflow | Workflow | Validate step transitions and compensation |
 | SyntheticEventConsumer | Consumer | Validate event consumption pipeline |
 | SyntheticTimedAction | Timed Action | Validate timer scheduling |
+| SyntheticRecordStreamProducer | Consumer + Service Stream | Publish record events cross-service (`synthetic-records`) |
+| InternalPingEndpoint | HTTP Endpoint | ACL-restricted target, callable only by pulse-peer |
+
+pulse-peer components: shared health check (from pulse-common), `StreamProbeConsumer` +
+`StreamCounterEntity` (consume the `synthetic-records` stream), and `PeerProbeEndpoint`
+(see [S2S Validation](#s2s-validation-pulse-peer)).
 
 ## Swagger UI
 
@@ -22,18 +43,29 @@ Once the service is running, open [http://localhost:9000/pulse/docs](http://loca
 ## Build & Run
 
 ```shell
+mvn install -DskipTests   # first time / after changing pulse-common
+cd pulse-core
 mvn compile exec:java
 ```
+
+Note: `exec:java` resolves pulse-common from the local Maven repository, not the reactor.
+After changing pulse-common, re-run `mvn install -pl pulse-common` from the root or the
+service starts against a stale library jar.
 
 ## Run Tests
 
 ```shell
+# from the repo root: builds pulse-common, pulse-core, pulse-peer and runs all tests
 mvn verify
 ```
 
 ## API Endpoints
 
 ### Health Check
+
+Served by pulse-common's reusable `HealthEndpoint`; every service using the library exposes
+the same probe. The response's `serviceName` identifies the serving service (`pulse-core`
+or `pulse-peer`, from `pulse.health.service-name`).
 
 ```shell
 curl http://localhost:9000/pulse/health
@@ -141,7 +173,7 @@ curl -X POST http://localhost:9000/pulse/burst/ \
 Enable by setting the `JWT_ISSUER` environment variable:
 
 ```shell
-JWT_ISSUER=my-issuer mvn compile exec:java
+cd pulse-core && JWT_ISSUER=my-issuer mvn compile exec:java
 ```
 
 Then test with a valid Bearer token:
@@ -184,8 +216,8 @@ could not be read). A missing secret returns `404` and never fails the service.
 
 #### Loading a secret in application code (`SecretLoader`)
 
-`SecretLoader` is the pattern a real service uses to read a secret the same way locally and when
-deployed:
+`SecretLoader` (in pulse-common, `com.example.common.application`) is the pattern a real service
+uses to read a secret the same way locally and when deployed:
 
 ```java
 String pw = SecretLoader.load(config, "/secrets/pulse-test-file/client-password",
@@ -203,7 +235,7 @@ Note: `.env` files are not auto-loaded by `mvn exec:java`. Load them yourself:
 
 ```shell
 set -a; source .env; set +a
-mvn compile exec:java
+cd pulse-core && mvn compile exec:java
 ```
 
 #### Wiring an Azure Key Vault external secret
@@ -235,6 +267,40 @@ full walk-through, gotchas, and open questions):
 curl http://localhost:9000/pulse/openapi.yaml
 ```
 
+## S2S Validation (pulse-peer)
+
+Deploy pulse-peer only when validating service-to-service settings. It probes pulse-core three
+ways and reports explicit pass/fail with evidence (a failing probe returns `passed: false`,
+never a 5xx):
+
+```shell
+# Direct s2s HTTP call to pulse-core's health endpoint
+curl http://<pulse-peer>/peer/probes/direct
+
+# Events consumed from pulse-core's brokerless service stream "synthetic-records"
+# (create/update a record on pulse-core first to make events flow)
+curl http://<pulse-peer>/peer/probes/stream
+
+# Call to pulse-core's /pulse/internal/ping, which only pulse-peer's service principal may call
+curl http://<pulse-peer>/peer/probes/restricted
+
+# The restricted endpoint denies everyone else (expect 403 from the internet)
+curl http://<pulse-core>/pulse/internal/ping
+```
+
+Run both services locally:
+
+```shell
+# terminal 1
+cd pulse-core && mvn compile exec:java
+# terminal 2 (different port)
+cd pulse-peer && mvn compile exec:java -Dakka.javasdk.dev-mode.http-port=9001
+```
+
+Locally the probes validate wiring; ACL enforcement (denying non-peer callers) is platform
+behavior. In integration tests the dev runtime does enforce it, and callers can impersonate a
+service with the `impersonate-service` header.
+
 ## Multi-Region Testing
 
 The service is designed for multi-region validation (replication, failover, recovery, and
@@ -257,7 +323,7 @@ service starts in projects without a broker. Enable them and start a local broke
 exercising topics:
 
 ```shell
-PULSE_TOPIC_ENABLED=true mvn compile exec:java -Dakka.javasdk.dev-mode.eventing.support=kafka
+cd pulse-core && PULSE_TOPIC_ENABLED=true mvn compile exec:java -Dakka.javasdk.dev-mode.eventing.support=kafka
 ```
 
 On the platform, set `PULSE_TOPIC_ENABLED=true` only in projects that have a message broker
@@ -269,14 +335,24 @@ The project uses Snyk vulnerability scanning. The application SDK dependency sca
 
 ## Deploy
 
-Build container image:
+Build container images (pulse-core and pulse-peer, from the repo root):
 
 ```shell
 mvn clean install -DskipTests
 ```
 
-Deploy:
+Deploy a single service ad hoc:
 
 ```shell
-akka service deploy akka-pulse akka-pulse:tag-name --push
+akka service deploy pulse-core pulse-core:tag-name --push
 ```
+
+Or apply the versioned project descriptor (repo maps one-to-one to an Akka project):
+
+```shell
+akka project apply -f deploy/project-core.yaml   # main only
+akka project apply -f deploy/project-full.yaml   # main + peer, for s2s validation
+akka service undeploy pulse-peer                 # tear the peer down when done
+```
+
+Update the `<image-tag>` placeholders in the descriptors to the tags produced by the build.

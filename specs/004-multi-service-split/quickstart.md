@@ -6,6 +6,10 @@
 mvn verify          # from repo root: builds pulse-common, pulse-core, pulse-peer, runs all tests
 ```
 
+Before running a service with `exec:java`, install the library to the local repo
+(`mvn install -DskipTests` from the root, or `mvn install -pl pulse-common` after library
+changes) — the exec plugin resolves pulse-common from the local repository, not the reactor.
+
 ## Run pulse-core locally
 
 ```shell

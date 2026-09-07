@@ -138,7 +138,7 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
           set +e
-          snyk test --severity-threshold=medium --json > snyk-result.json
+          snyk test --maven-aggregate-project --severity-threshold=medium --json > snyk-result.json
           code=$?
           set -e
           # 0 = no vulns, 1 = vulns found, >=2 = scan error

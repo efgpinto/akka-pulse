@@ -1,0 +1,20 @@
+# Akka project descriptor — main-only shape (feature 004).
+# This repository maps one-to-one to an Akka project; this file declares its deployed shape.
+#
+# Apply:
+#   mvn clean install -DskipTests                  # builds and pushes per-module images
+#   akka project apply -f deploy/project-core.yaml
+#
+# Replace <image-tag> with the tag reported by the pulse-core image build
+# (docker.image defaults to the artifactId; tags are <version>-<build.timestamp>).
+# Use `akka service deploy pulse-core pulse-core:<image-tag> --push` for ad-hoc deploys instead.
+#
+# For the on-demand s2s validation window, apply deploy/project-full.yaml; to tear the peer
+# down again, `akka service undeploy pulse-peer` (or re-apply is NOT enough: apply only
+# upserts declared resources, it does not delete undeclared ones).
+resource: Service
+resourceVersion: v1
+metadata:
+  name: pulse-core
+spec:
+  image: pulse-core:<image-tag>

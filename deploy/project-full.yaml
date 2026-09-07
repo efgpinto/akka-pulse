@@ -1,0 +1,28 @@
+# Akka project descriptor — main + peer shape (feature 004).
+# Deploy this shape only when validating service-to-service settings; pulse-peer is on demand.
+#
+# Apply:
+#   mvn clean install -DskipTests
+#   akka project apply -f deploy/project-full.yaml
+#
+# Validate (from the peer's route or via `akka service proxy pulse-peer`):
+#   GET /peer/probes/direct       -> passed=true (s2s HTTP call to pulse-core)
+#   GET /peer/probes/stream       -> passed=true after creating a record on pulse-core
+#   GET /peer/probes/restricted   -> passed=true (ACL allows only pulse-peer)
+#   GET /pulse/internal/ping on pulse-core from the internet -> denied (403)
+#
+# Tear down the peer afterwards: `akka service undeploy pulse-peer` (apply does not delete
+# resources that are merely absent from the descriptor). pulse-core is unaffected.
+resource: Service
+resourceVersion: v1
+metadata:
+  name: pulse-core
+spec:
+  image: pulse-core:<image-tag>
+---
+resource: Service
+resourceVersion: v1
+metadata:
+  name: pulse-peer
+spec:
+  image: pulse-peer:<image-tag>
