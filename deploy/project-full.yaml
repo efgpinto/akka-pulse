@@ -8,11 +8,12 @@
 #   akka secret create generic grafana    --literal token=<value>     # observability export
 #   akka secret create generic new-relic  --literal api-key=<value>   # observability export
 #
-# Migration from the pre-split service: `akka service undeploy akka-pulse` and
-# `akka route delete akka-pulse` first — the route below reuses its hostname for pulse-core.
-# The rename discards the old service's persisted synthetic state (fine for a test service).
+# Migration from the pre-split service: `akka service undeploy akka-pulse` first. The route
+# below keeps the pre-split route name and hostname and is updated in place to target
+# pulse-core, so the public URL stays continuous. The service rename discards the old
+# service's persisted synthetic state (fine for a test service).
 #
-# Replace <image-tag> with the pushed tag (CI pushes docker.io/efgpinto/pulse-core:<short-sha>).
+# Image tags are pinned to the CI-pushed short-sha; update them when deploying a new build.
 #
 # Apply:
 #   mvn clean install -DskipTests
@@ -47,7 +48,7 @@ spec:
       secretKeyRef:
         key: token
         name: pulse-test
-  image: docker.io/efgpinto/pulse-core:<image-tag>
+  image: docker.io/efgpinto/pulse-core:45601f
   resources:
     autoscaling:
       minInstances: 1
@@ -61,7 +62,9 @@ spec:
   workloadIdentity: {}
 ---
 metadata:
-  name: pulse-core
+  # Pre-split route name kept on purpose: it owns the hostname below, and updating it in
+  # place (instead of delete + recreate) keeps the public URL continuous across the rename.
+  name: akka-pulse
 resource: Route
 resourceVersion: v1
 spec:
@@ -77,7 +80,7 @@ metadata:
 resource: Service
 resourceVersion: v1
 spec:
-  image: docker.io/efgpinto/pulse-peer:<image-tag>
+  image: docker.io/efgpinto/pulse-peer:45601f
   resources:
     autoscaling:
       minInstances: 1

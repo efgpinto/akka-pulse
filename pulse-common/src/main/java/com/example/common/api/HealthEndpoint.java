@@ -17,8 +17,10 @@ import java.time.Instant;
  * the region the write landed in. The serving service identifies itself via the
  * {@code pulse.health.service-name} config key (each service sets it in application.conf).
  */
+// Allows the internet AND sibling services: an internet-only ACL rejects s2s callers, which
+// carry a service principal (found by pulse-peer's direct probe on first deployment).
 @HttpEndpoint
-@Acl(allow = @Acl.Matcher(principal = Acl.Principal.INTERNET))
+@Acl(allow = { @Acl.Matcher(principal = Acl.Principal.INTERNET), @Acl.Matcher(service = "*") })
 public class HealthEndpoint {
 
   public record PersistenceCheckResult(String status, long latencyMs) {}

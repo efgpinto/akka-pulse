@@ -50,6 +50,18 @@ public class PulseEndpointIntegrationTest extends TestKitSupport {
     }
   }
 
+  // s2s callers carry a service principal, not INTERNET; the health ACL must accept both.
+  @Test
+  public void healthEndpointAllowsServiceCallers() {
+    var response = httpClient.GET("/pulse/health")
+        .addHeader("impersonate-service", "pulse-peer")
+        .responseBodyAs(HealthEndpoint.HealthUpResponse.class)
+        .invoke();
+
+    assertThat(response.status().isSuccess()).isTrue();
+    assertThat(response.body().status()).isEqualTo("UP");
+  }
+
   @Test
   public void internalPingRespondsForPulsePeer() {
     var response = httpClient.GET("/pulse/internal/ping")
