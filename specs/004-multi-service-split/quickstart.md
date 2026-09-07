@@ -52,17 +52,12 @@ locally the probes validate wiring only.
 
 ## Deploy from the descriptor
 
-Main-only shape:
+One descriptor declares both services; the peer stays deployed only during s2s validation
+windows (undeploy it afterwards):
 
 ```shell
 mvn clean install -DskipTests                     # builds pulse-core + pulse-peer images
-akka project apply -f deploy/project-core.yaml    # update image tags first
-```
-
-Main + peer (s2s validation window):
-
-```shell
-akka project apply -f deploy/project-full.yaml
+akka project apply -f deploy/project-full.yaml    # update image tags first
 ```
 
 Validate on the platform:
@@ -75,5 +70,5 @@ curl https://<peer-route>/peer/probes/restricted             # passed=true
 curl https://<core-route>/pulse/internal/ping                # DENIED (403) from internet
 ```
 
-Tear down the peer when done; pulse-core is unaffected (re-apply `project-core.yaml` or
+Tear down the peer when done; pulse-core is unaffected (use
 `akka service undeploy pulse-peer`).

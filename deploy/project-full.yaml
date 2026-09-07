@@ -1,9 +1,18 @@
-# Akka project descriptor — main + peer shape (feature 004).
-# Same as project-core.yaml plus pulse-peer. Deploy this shape only when validating
-# service-to-service settings; pulse-peer is on demand.
+# Akka project descriptor for eduardo-playground-dev (feature 004).
+# Derived from `akka project export`; this repository maps one-to-one to this project.
+# Declares both services; pulse-peer is on demand — undeploy it outside s2s validation
+# windows (apply only upserts declared resources, it does not delete undeclared ones).
 #
-# See project-core.yaml for prerequisites (secrets) and the migration note from the
-# pre-split akka-pulse service.
+# Prerequisites (secret VALUES are never exported and are not in this file):
+#   akka secret create generic pulse-test --literal token=<value>     # secret probes
+#   akka secret create generic grafana    --literal token=<value>     # observability export
+#   akka secret create generic new-relic  --literal api-key=<value>   # observability export
+#
+# Migration from the pre-split service: `akka service undeploy akka-pulse` and
+# `akka route delete akka-pulse` first — the route below reuses its hostname for pulse-core.
+# The rename discards the old service's persisted synthetic state (fine for a test service).
+#
+# Replace <image-tag> with the pushed tag (CI pushes docker.io/efgpinto/pulse-core:<short-sha>).
 #
 # Apply:
 #   mvn clean install -DskipTests

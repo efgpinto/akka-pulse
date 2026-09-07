@@ -352,9 +352,8 @@ project; derived from `akka project export`, minus secret values — see the pre
 descriptor headers):
 
 ```shell
-akka project apply -f deploy/project-core.yaml   # main only
-akka project apply -f deploy/project-full.yaml   # main + peer, for s2s validation
-akka service undeploy pulse-peer                 # tear the peer down when done
+akka project apply -f deploy/project-full.yaml   # pulse-core + pulse-peer
+akka service undeploy pulse-peer                 # tear the peer down outside s2s validation
 ```
 
-Update the `<image-tag>` placeholders in the descriptors to the tags produced by the build.
+Update the `<image-tag>` placeholders in the descriptor to the tags produced by the build.
