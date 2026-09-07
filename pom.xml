@@ -10,5 +10,6 @@
     <modules>
         <module>pulse-common</module>
         <module>pulse-core</module>
+        <module>pulse-peer</module>
     </modules>
 </project>

@@ -57,19 +57,19 @@ the restricted endpoint; core unaffected when peer absent.
 
 ### Core s2s surface
 
-- [ ] T011 [P] [US2] Create `PulseStreamEvent` (sealed, `@TypeName` pulse-record-created/pulse-record-updated per data-model.md) in `pulse-common/src/main/java/com/example/common/domain/PulseStreamEvent.java`
-- [ ] T012 [US2] Create `SyntheticRecordStreamProducer` in `pulse-core/src/main/java/com/example/application/SyntheticRecordStreamProducer.java`: `@Consume.FromEventSourcedEntity(SyntheticRecordEntity.class)` + `@Produce.ServiceStream(id = "synthetic-records")` + `@Acl(allow = @Acl.Matcher(service = "*"))`, mapping internal events to `PulseStreamEvent`
-- [ ] T013 [US2] Create `InternalPingEndpoint` in `pulse-core/src/main/java/com/example/api/InternalPingEndpoint.java`: `GET /pulse/internal/ping`, `@Acl(allow = @Acl.Matcher(service = "pulse-peer"))`, response per contracts/core-internal-api.md
-- [ ] T014 [US2] Core tests: stream-capture integration test for the producer transform (eventing testkit, consuming-producing.html.md pattern) in `pulse-core/src/test/java/com/example/application/SyntheticRecordStreamProducerIntegrationTest.java`; basic response test for InternalPingEndpoint
+- [x] T011 [P] [US2] Create `PulseStreamEvent` (sealed, `@TypeName` pulse-record-created/pulse-record-updated per data-model.md) in `pulse-common/src/main/java/com/example/common/domain/PulseStreamEvent.java`
+- [x] T012 [US2] Create `SyntheticRecordStreamProducer` in `pulse-core/src/main/java/com/example/application/SyntheticRecordStreamProducer.java`: `@Consume.FromEventSourcedEntity(SyntheticRecordEntity.class)` + `@Produce.ServiceStream(id = "synthetic-records")` + `@Acl(allow = @Acl.Matcher(service = "*"))`, mapping internal events to `PulseStreamEvent`
+- [x] T013 [US2] Create `InternalPingEndpoint` in `pulse-core/src/main/java/com/example/api/InternalPingEndpoint.java`: `GET /pulse/internal/ping`, `@Acl(allow = @Acl.Matcher(service = "pulse-peer"))`, response per contracts/core-internal-api.md
+- [x] T014 [US2] Core tests: stream-capture integration test for the producer transform (eventing testkit, consuming-producing.html.md pattern) in `pulse-core/src/test/java/com/example/application/SyntheticRecordStreamProducerIntegrationTest.java`; basic response test for InternalPingEndpoint
 
 ### Peer service
 
-- [ ] T015 [US2] Create `pulse-peer/pom.xml` (parent akka-javasdk-parent, dep pulse-common) and `pulse-peer/src/main/resources/application.conf` (`pulse.health.service-name = "pulse-peer"`); add module to root pom
-- [ ] T016 [P] [US2] Create `StreamCounter` in `pulse-peer/src/main/java/com/example/peer/domain/StreamCounter.java` and `StreamCounterEntity` (KVE id `stream-counter`, increment/get) in `pulse-peer/src/main/java/com/example/peer/application/StreamCounterEntity.java`
-- [ ] T017 [US2] Create `StreamProbeConsumer` in `pulse-peer/src/main/java/com/example/peer/application/StreamProbeConsumer.java`: `@Consume.FromServiceStream(service = "pulse-core", id = "synthetic-records")`, increments StreamCounterEntity
-- [ ] T018 [US2] Create `PeerProbeEndpoint` in `pulse-peer/src/main/java/com/example/peer/api/PeerProbeEndpoint.java`: `/peer/probes/direct`, `/peer/probes/stream`, `/peer/probes/restricted` per contracts/peer-probes-api.md, using `HttpClientProvider.httpClientFor("pulse-core")`; failures return structured `passed=false`, never 5xx (R7)
-- [ ] T019 [US2] Peer integration tests in `pulse-peer/src/test/java/com/example/peer/`: (a) mock upstream stream (testkit `FromServiceStream` mock) → stream probe reports count; (b) direct/restricted probes return structured FAIL when pulse-core unreachable; (c) `/pulse/health` served with serviceName `pulse-peer` (library reuse, SC-002)
-- [ ] T020 [US2] Full build from root: `mvn verify` green across all three modules
+- [x] T015 [US2] Create `pulse-peer/pom.xml` (parent akka-javasdk-parent, dep pulse-common) and `pulse-peer/src/main/resources/application.conf` (`pulse.health.service-name = "pulse-peer"`); add module to root pom
+- [x] T016 [P] [US2] Create `StreamCounter` in `pulse-peer/src/main/java/com/example/peer/domain/StreamCounter.java` and `StreamCounterEntity` (KVE id `stream-counter`, increment/get) in `pulse-peer/src/main/java/com/example/peer/application/StreamCounterEntity.java`
+- [x] T017 [US2] Create `StreamProbeConsumer` in `pulse-peer/src/main/java/com/example/peer/application/StreamProbeConsumer.java`: `@Consume.FromServiceStream(service = "pulse-core", id = "synthetic-records")`, increments StreamCounterEntity
+- [x] T018 [US2] Create `PeerProbeEndpoint` in `pulse-peer/src/main/java/com/example/peer/api/PeerProbeEndpoint.java`: `/peer/probes/direct`, `/peer/probes/stream`, `/peer/probes/restricted` per contracts/peer-probes-api.md, using `HttpClientProvider.httpClientFor("pulse-core")`; failures return structured `passed=false`, never 5xx (R7)
+- [x] T019 [US2] Peer integration tests in `pulse-peer/src/test/java/com/example/peer/`: (a) mock upstream stream (testkit `FromServiceStream` mock) → stream probe reports count; (b) direct/restricted probes return structured FAIL when pulse-core unreachable; (c) `/pulse/health` served with serviceName `pulse-peer` (library reuse, SC-002)
+- [x] T020 [US2] Full build from root: `mvn verify` green across all three modules
 
 **Checkpoint**: US1 + US2 complete; peer validated against mocked core; core untouched when peer absent.
 

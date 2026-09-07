@@ -36,6 +36,32 @@ public class PulseEndpointIntegrationTest extends TestKitSupport {
     assertThat(response.body().persistenceCheck().latencyMs()).isGreaterThanOrEqualTo(0);
   }
 
+  // The testkit enforces the endpoint ACL: an unidentified caller is denied, a caller
+  // impersonating the pulse-peer service (dev-mode impersonate-service header) is allowed.
+  @Test
+  public void internalPingDeniesCallersOtherThanPulsePeer() {
+    try {
+      httpClient.GET("/pulse/internal/ping")
+          .responseBodyAs(InternalPingEndpoint.PingResponse.class)
+          .invoke();
+      throw new AssertionError("Expected the request without a service identity to be denied");
+    } catch (RuntimeException e) {
+      assertThat(e.getMessage()).contains("403");
+    }
+  }
+
+  @Test
+  public void internalPingRespondsForPulsePeer() {
+    var response = httpClient.GET("/pulse/internal/ping")
+        .addHeader("impersonate-service", "pulse-peer")
+        .responseBodyAs(InternalPingEndpoint.PingResponse.class)
+        .invoke();
+
+    assertThat(response.status().isSuccess()).isTrue();
+    assertThat(response.body().serviceName()).isEqualTo("pulse-core");
+    assertThat(response.body().region()).isNotNull();
+  }
+
   @Test
   public void topicCounterEndpointReturnsEmptyForUnseenCounter() {
     var response = httpClient.GET("/pulse/topic-counter/synthetic-record-events")
