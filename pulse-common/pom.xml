@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.example</groupId>
+    <artifactId>pulse-common</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+    <name>pulse-common</name>
+
+    <!-- Library of reusable Akka components (health check endpoint + entity, SecretLoader,
+         public stream event types). Deliberately NOT built with akka-javasdk-parent: the parent
+         binds docker image builds and runtime exec, which are wrong for a non-deployable jar.
+         The Akka SDK annotation processor below generates
+         META-INF/akka-javasdk-components_com.example_pulse-common.conf, which consuming services
+         discover from this jar on their classpath. This module must not contain a ServiceSetup. -->
+
+    <properties>
+        <maven.compiler.release>21</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <akka-javasdk.version>3.6.3</akka-javasdk.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.akka</groupId>
+            <artifactId>akka-javasdk</artifactId>
+            <version>${akka-javasdk.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.akka</groupId>
+            <artifactId>akka-javasdk-testkit</artifactId>
+            <version>${akka-javasdk.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <compilerArgs>
+                        <arg>-Xlint:deprecation</arg>
+                        <arg>-parameters</arg>
+                        <arg>-Aakka.javasdk.groupId=${project.groupId}</arg>
+                        <arg>-Aakka.javasdk.artifactId=${project.artifactId}</arg>
+                    </compilerArgs>
+                    <annotationProcessors>
+                        <annotationProcessor>akka.javasdk.tooling.processor.ComponentValidationProcessor</annotationProcessor>
+                        <annotationProcessor>akka.javasdk.tooling.processor.ComponentAnnotationProcessor</annotationProcessor>
+                    </annotationProcessors>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>io.akka</groupId>
+                            <artifactId>akka-javasdk-annotation-processor</artifactId>
+                            <version>${akka-javasdk.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

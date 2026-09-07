@@ -1,26 +1,26 @@
 {
   "agents_md": {
-    "etag": "\"8525-652c8e1bc7b55\"",
-    "last_modified": "Wed, 27 May 2026 09:03:14 GMT",
-    "downloaded_at": "2026-06-06T23:13:05Z",
+    "etag": "\"8525-657c0d06094b0\"",
+    "last_modified": "Wed, 29 Jul 2026 14:31:41 GMT",
+    "downloaded_at": "2026-08-05T13:47:44Z",
     "source_url": "https://doc.akka.io/_attachments/AGENTS.md"
   },
   "claude_md": {
-    "etag": "\"1299-652c8e1bc7b55\"",
-    "last_modified": "Wed, 27 May 2026 09:03:14 GMT",
-    "downloaded_at": "2026-06-06T23:13:05Z",
+    "etag": "\"1299-657c0d06094b0\"",
+    "last_modified": "Wed, 29 Jul 2026 14:31:41 GMT",
+    "downloaded_at": "2026-08-05T13:47:44Z",
     "source_url": "https://doc.akka.io/_attachments/CLAUDE.md"
   },
   "context": {
-    "etag": "\"11146d-652c903819789\"",
-    "last_modified": "Wed, 27 May 2026 09:12:40 GMT",
-    "downloaded_at": "2026-06-06T23:13:04Z",
+    "etag": "\"115f5b-657c0fbaa7d5a\"",
+    "last_modified": "Wed, 29 Jul 2026 14:43:47 GMT",
+    "downloaded_at": "2026-08-05T13:47:43Z",
     "source_url": "https://doc.akka.io/java/_attachments/akka-docs-md.zip"
   },
   "marketplace": {
-    "etag": "4b390b0a5f92d3b1f144437f92bb0a2572ebb8b1",
+    "etag": "fc05e5eecf7759b44160621d960911c21713a407",
     "last_modified": "",
-    "downloaded_at": "2026-06-06T23:09:54Z",
+    "downloaded_at": "2026-08-05T13:47:45Z",
     "source_url": "https://github.com/akka/ai-marketplace.git"
   }
 }
