@@ -1,28 +1,104 @@
 # Akka project descriptor — main + peer shape (feature 004).
-# Deploy this shape only when validating service-to-service settings; pulse-peer is on demand.
+# Same as project-core.yaml plus pulse-peer. Deploy this shape only when validating
+# service-to-service settings; pulse-peer is on demand.
+#
+# See project-core.yaml for prerequisites (secrets) and the migration note from the
+# pre-split akka-pulse service.
 #
 # Apply:
 #   mvn clean install -DskipTests
 #   akka project apply -f deploy/project-full.yaml
 #
-# Validate (from the peer's route or via `akka service proxy pulse-peer`):
+# pulse-peer has no route on purpose: reach its probes with `akka service proxy pulse-peer`
+# (or add a route if internet access is preferred):
 #   GET /peer/probes/direct       -> passed=true (s2s HTTP call to pulse-core)
 #   GET /peer/probes/stream       -> passed=true after creating a record on pulse-core
 #   GET /peer/probes/restricted   -> passed=true (ACL allows only pulse-peer)
 #   GET /pulse/internal/ping on pulse-core from the internet -> denied (403)
 #
-# Tear down the peer afterwards: `akka service undeploy pulse-peer` (apply does not delete
-# resources that are merely absent from the descriptor). pulse-core is unaffected.
-resource: Service
+# Tear down afterwards: `akka service undeploy pulse-peer` (apply does not delete resources
+# that are merely absent from the descriptor). pulse-core is unaffected.
+metadata:
+  name: eduardo-playground-dev
+resource: Project
 resourceVersion: v1
+spec:
+  organization: eduardo-super-org
+  regions:
+  - aws-us-east-2
+---
 metadata:
   name: pulse-core
-spec:
-  image: pulse-core:<image-tag>
----
 resource: Service
 resourceVersion: v1
+spec:
+  env:
+  - name: PULSE_TEST_SECRET
+    valueFrom:
+      secretKeyRef:
+        key: token
+        name: pulse-test
+  image: docker.io/efgpinto/pulse-core:<image-tag>
+  resources:
+    autoscaling:
+      minInstances: 1
+    instanceType: g1.general.x-small
+    runtime:
+      mode: embedded
+  volumeMounts:
+  - mountPath: /secrets/pulse-test-file
+    secret:
+      secretName: pulse-test
+  workloadIdentity: {}
+---
+metadata:
+  name: pulse-core
+resource: Route
+resourceVersion: v1
+spec:
+  host: quiet-rain-1815.aws-us-east-2.apps.akka.dev
+  routes:
+  - prefix: /
+    route:
+      service: pulse-core
+  tls: {}
+---
 metadata:
   name: pulse-peer
+resource: Service
+resourceVersion: v1
 spec:
-  image: pulse-peer:<image-tag>
+  image: docker.io/efgpinto/pulse-peer:<image-tag>
+  resources:
+    autoscaling:
+      minInstances: 1
+    instanceType: g1.general.x-small
+    runtime:
+      mode: embedded
+  workloadIdentity: {}
+---
+resource: Observability
+resourceVersion: v2
+spec:
+  exporters:
+  - otlpHttp:
+      endpointBaseUrl: https://otlp-gateway-prod-eu-west-2.grafana.net/otlp
+      headers:
+      - name: Authorization
+        valueFrom:
+          secretKeyRef:
+            key: token
+            name: grafana
+      tls: {}
+  - otlpHttp:
+      endpointBaseUrl: https://otlp.nr-data.net
+      headers:
+      - name: api-key
+        valueFrom:
+          secretKeyRef:
+            key: api-key
+            name: new-relic
+      tls: {}
+  traceSampling:
+    probabilistic:
+      percentage: "10"

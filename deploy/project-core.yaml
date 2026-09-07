@@ -1,20 +1,93 @@
 # Akka project descriptor — main-only shape (feature 004).
-# This repository maps one-to-one to an Akka project; this file declares its deployed shape.
+# This repository maps one-to-one to the Akka project below; this file is derived from
+# `akka project export` of eduardo-playground-dev and declares the shape this repo deploys.
+#
+# Prerequisites (secret VALUES are never exported and are not in this file):
+#   akka secret create generic pulse-test --literal token=<value>     # secret probes
+#   akka secret create generic grafana    --literal token=<value>     # observability export
+#   akka secret create generic new-relic  --literal api-key=<value>   # observability export
 #
 # Apply:
-#   mvn clean install -DskipTests                  # builds and pushes per-module images
+#   mvn clean install -DskipTests            # builds images (see CI for pushed tags)
 #   akka project apply -f deploy/project-core.yaml
 #
-# Replace <image-tag> with the tag reported by the pulse-core image build
-# (docker.image defaults to the artifactId; tags are <version>-<build.timestamp>).
-# Use `akka service deploy pulse-core pulse-core:<image-tag> --push` for ad-hoc deploys instead.
+# Replace <image-tag> with the pushed tag (CI pushes docker.io/efgpinto/pulse-core:<short-sha>).
 #
-# For the on-demand s2s validation window, apply deploy/project-full.yaml; to tear the peer
-# down again, `akka service undeploy pulse-peer` (or re-apply is NOT enough: apply only
-# upserts declared resources, it does not delete undeclared ones).
-resource: Service
+# Migration from the pre-split service: `akka service undeploy akka-pulse` and
+# `akka route delete akka-pulse` first — the route below reuses its hostname for pulse-core.
+# The rename discards the old service's persisted synthetic state, which is acceptable for
+# this test service.
+#
+# For the on-demand s2s validation window, apply deploy/project-full.yaml instead; tear the
+# peer down with `akka service undeploy pulse-peer` (apply only upserts declared resources,
+# it does not delete undeclared ones).
+metadata:
+  name: eduardo-playground-dev
+resource: Project
 resourceVersion: v1
+spec:
+  organization: eduardo-super-org
+  regions:
+  - aws-us-east-2
+---
 metadata:
   name: pulse-core
+resource: Service
+resourceVersion: v1
 spec:
-  image: pulse-core:<image-tag>
+  env:
+  - name: PULSE_TEST_SECRET
+    valueFrom:
+      secretKeyRef:
+        key: token
+        name: pulse-test
+  image: docker.io/efgpinto/pulse-core:<image-tag>
+  resources:
+    autoscaling:
+      minInstances: 1
+    instanceType: g1.general.x-small
+    runtime:
+      mode: embedded
+  volumeMounts:
+  - mountPath: /secrets/pulse-test-file
+    secret:
+      secretName: pulse-test
+  workloadIdentity: {}
+---
+metadata:
+  name: pulse-core
+resource: Route
+resourceVersion: v1
+spec:
+  host: quiet-rain-1815.aws-us-east-2.apps.akka.dev
+  routes:
+  - prefix: /
+    route:
+      service: pulse-core
+  tls: {}
+---
+resource: Observability
+resourceVersion: v2
+spec:
+  exporters:
+  - otlpHttp:
+      endpointBaseUrl: https://otlp-gateway-prod-eu-west-2.grafana.net/otlp
+      headers:
+      - name: Authorization
+        valueFrom:
+          secretKeyRef:
+            key: token
+            name: grafana
+      tls: {}
+  - otlpHttp:
+      endpointBaseUrl: https://otlp.nr-data.net
+      headers:
+      - name: api-key
+        valueFrom:
+          secretKeyRef:
+            key: api-key
+            name: new-relic
+      tls: {}
+  traceSampling:
+    probabilistic:
+      percentage: "10"

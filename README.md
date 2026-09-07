@@ -347,7 +347,9 @@ Deploy a single service ad hoc:
 akka service deploy pulse-core pulse-core:tag-name --push
 ```
 
-Or apply the versioned project descriptor (repo maps one-to-one to an Akka project):
+Or apply the versioned project descriptor (repo maps one-to-one to the `eduardo-playground-dev`
+project; derived from `akka project export`, minus secret values — see the prerequisites in the
+descriptor headers):
 
 ```shell
 akka project apply -f deploy/project-core.yaml   # main only
