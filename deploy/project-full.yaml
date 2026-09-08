@@ -88,9 +88,29 @@ spec:
     runtime:
       mode: embedded
   workloadIdentity: {}
-# NOTE: the project previously had an Observability config (OTLP export to Grafana Cloud and
-# New Relic, 10% trace sampling, referencing secrets grafana/new-relic). It was removed
-# 2026-09-07: the generated otel-collector sidecar config is broken on the dev environment
-# ('metricstransform/kalixLabels ... missing required field "new_value"' + unset
-# KALIX_WORKLOAD), which crash-loops EVERY new pod in the project. Re-add once the platform
-# bug is fixed if the exports are still wanted.
+---
+resource: Observability
+resourceVersion: v2
+spec:
+  exporters:
+  - otlpHttp:
+      endpointBaseUrl: https://otlp-gateway-prod-eu-west-2.grafana.net/otlp
+      headers:
+      - name: Authorization
+        valueFrom:
+          secretKeyRef:
+            key: token
+            name: grafana
+      tls: {}
+  - otlpHttp:
+      endpointBaseUrl: https://otlp.nr-data.net
+      headers:
+      - name: api-key
+        valueFrom:
+          secretKeyRef:
+            key: api-key
+            name: new-relic
+      tls: {}
+  traceSampling:
+    probabilistic:
+      percentage: "10"
