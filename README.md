@@ -31,6 +31,7 @@ itself one of the platform features under test.
 | SyntheticTimedAction | Timed Action | Validate timer scheduling |
 | SyntheticRecordStreamProducer | Consumer + Service Stream | Publish record events cross-service (`synthetic-records`) |
 | InternalPingEndpoint | HTTP Endpoint | ACL-restricted target, callable only by pulse-peer |
+| EgressProbeEndpoint | HTTP Endpoint | Outbound connectivity probe for egress network policy validation |
 
 pulse-peer components: shared health check (from pulse-common), `StreamProbeConsumer` +
 `StreamCounterEntity` (consume the `synthetic-records` stream), and `PeerProbeEndpoint`
@@ -166,6 +167,24 @@ curl -X POST http://localhost:9000/pulse/ese/slow-1/create \
 curl -X POST http://localhost:9000/pulse/burst/ \
   -H "Content-Type: application/json" \
   -d '{"target":"ese","count":50,"delaySeconds":0}'
+```
+
+### Egress Probe
+
+Makes an outbound HTTP call to an arbitrary host and port and reports pass/fail with
+evidence (never a 5xx). Backed by `portquiz.net`, which answers HTTP on every TCP port.
+Use it to validate project egress network policy rules; see
+[docs/network-policy-guide.md](docs/network-policy-guide.md).
+
+```shell
+# Defaults: host portquiz.net, port 80, path /
+curl http://localhost:9000/pulse/probes/egress
+
+# Non-default port (blocked on the platform unless an egress rule allows it)
+curl "http://localhost:9000/pulse/probes/egress?port=666"
+
+# Arbitrary target
+curl "http://localhost:9000/pulse/probes/egress?host=example.com&port=8080&path=/status"
 ```
 
 ### JWT Endpoint (disabled by default)
@@ -328,6 +347,24 @@ cd pulse-core && PULSE_TOPIC_ENABLED=true mvn compile exec:java -Dakka.javasdk.d
 
 On the platform, set `PULSE_TOPIC_ENABLED=true` only in projects that have a message broker
 configured.
+
+## Network Policy
+
+The project's network policy (ingress and egress rules) is managed with
+`akka project network-policy` and declared in `deploy/project-full.yaml` as an example
+egress policy with one hardcoded allowed port (666/TCP). Project egress rules extend the
+platform baseline outbound allow-list (80, 443, 8080, ...), which always stays in effect.
+With the example applied, the [egress probe](#egress-probe) passes on the declared port
+and on baseline ports, and fails on everything else:
+
+```shell
+curl "https://<pulse-core-host>/pulse/probes/egress?port=666"   # passed: true
+curl "https://<pulse-core-host>/pulse/probes/egress?port=667"   # passed: false
+```
+
+Ingress rules do not affect route (internet) traffic, only direct cross-project calls.
+Full model, CLI reference, validated behavior, and a rollout gotcha in
+[docs/network-policy-guide.md](docs/network-policy-guide.md).
 
 ## Security Scanning
 

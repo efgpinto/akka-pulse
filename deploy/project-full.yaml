@@ -48,7 +48,7 @@ spec:
       secretKeyRef:
         key: token
         name: pulse-test
-  image: docker.io/efgpinto/pulse-core:b2ba3d
+  image: docker.io/efgpinto/pulse-core:netpol-1
   resources:
     autoscaling:
       minInstances: 1
@@ -80,7 +80,7 @@ metadata:
 resource: Service
 resourceVersion: v1
 spec:
-  image: docker.io/efgpinto/pulse-peer:b2ba3d
+  image: docker.io/efgpinto/pulse-peer:netpol-1
   resources:
     autoscaling:
       minInstances: 1
@@ -114,3 +114,17 @@ spec:
   traceSampling:
     probabilistic:
       percentage: "10"
+---
+# Example egress policy with one hardcoded allowed port. Project egress rules EXTEND the
+# platform baseline outbound allow-list (80, 443, 8080, ...), which stays in effect and
+# cannot be revoked here. With this policy applied, the egress probe passes on port 666
+# and on baseline ports, and fails on everything else:
+#   curl "https://<pulse-core-host>/pulse/probes/egress?port=666"  -> passed: true
+#   curl "https://<pulse-core-host>/pulse/probes/egress?port=667"  -> passed: false
+resource: NetworkPolicy
+resourceVersion: v1
+spec:
+  egress:
+  - ports:
+    - port: 666
+      protocol: TCP
