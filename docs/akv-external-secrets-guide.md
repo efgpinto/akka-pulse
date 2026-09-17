@@ -19,7 +19,7 @@ Secrets User`.
 | # | Decision | Options | Deciding question |
 |---|----------|---------|-------------------|
 | 1 | **Vault topology** | Shared / per-team · Vault-per-app | How automated is your networking (a private endpoint + firewall change per vault)? Isolation / compliance? Throttling volume? |
-| 2 | **Secret shape** | One object per value · Bundle values in one object (`.env`/JSON) | Do the values rotate together and share access, or need independent rotation / audit? (Decide the object set up front.) |
+| 2 | **Secret shape** | One object per value · Bundle values in one object (`.env`/JSON) | Do the values rotate together and share access, or need independent rotation / audit? |
 | 3 | **Identity & federation** | One shared app · App per service / trust boundary | Should services be isolated from each other's secrets? (One federated credential per service either way.) |
 | 4 | **Access scope** | Vault-wide · Per-secret · By name/tag (ABAC) | All secrets, one specific secret, or a class of secrets (name prefix / tag via an ABAC condition) — for least privilege? |
 
