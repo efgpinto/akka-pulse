@@ -17,8 +17,28 @@
     <properties>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <akka-javasdk.version>3.6.3</akka-javasdk.version>
+        <akka-javasdk.version>3.6.4</akka-javasdk.version>
+        <akka-runtime.version>1.6.16</akka-runtime.version>
     </properties>
+
+    <!-- The 3.6.4 release poms of akka-javasdk/-testkit pin these runtime artifacts to an
+         unresolvable SNAPSHOT. Services inheriting akka-javasdk-parent get the release pin
+         from its dependencyManagement; this module skips the parent, so pin here. Keep
+         akka-runtime.version in sync with the parent pom's property. -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.akka</groupId>
+                <artifactId>akka-sdk-spi_2.13</artifactId>
+                <version>${akka-runtime.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.akka</groupId>
+                <artifactId>akka-runtime-dev_2.13</artifactId>
+                <version>${akka-runtime.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <dependency>
