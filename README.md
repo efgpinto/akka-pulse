@@ -407,7 +407,7 @@ Full model, CLI reference, validated behavior, and a rollout gotcha in
 
 ## Security Scanning
 
-The project uses Snyk vulnerability scanning. The application SDK dependency scan runs automatically in CI; the remaining scans are manually triggered and split into two workflows: recommended scans (Akka-only runtime image, runtime manifest dependencies, filtered application pom) and alternative scans kept for reference. See [docs/vulnerability-scanning.md](docs/vulnerability-scanning.md) for details.
+The project uses Snyk vulnerability scanning. The application SDK dependency scan runs automatically in CI; the remaining scans are manually triggered and split into two workflows: recommended scans (Akka-only runtime image, runtime manifest dependencies, application pom) and alternative scans kept for reference. See [docs/vulnerability-scanning.md](docs/vulnerability-scanning.md) for details.
 
 ## Deploy
 

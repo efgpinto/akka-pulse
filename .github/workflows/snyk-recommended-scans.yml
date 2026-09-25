@@ -106,11 +106,8 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
   # snyk test on the project's own pom.xml, as one would do for a regular Maven
-  # application, with issues introduced via io.akka:akka-runtime-dev filtered
-  # out of the results (local development runtime, never deployed). Snyk has no
-  # native "ignore everything from this dependency" rule (.snyk ignores are
-  # per-vulnerability ID), so the job post-filters Snyk's JSON output on the
-  # dependency path instead.
+  # application. No filtering: issues introduced via io.akka:akka-runtime-dev
+  # (local development runtime, never deployed) are reported too.
   # Note: this job does not use the runtime_version input.
   snyk-naive-pom-scan:
     runs-on: ubuntu-latest
@@ -133,23 +130,7 @@ jobs:
       - name: Install Snyk CLI
         run: npm install -g snyk
 
-      - name: Snyk scan application pom (ignoring akka-runtime-dev)
+      - name: Snyk scan application pom
+        run: snyk test --maven-aggregate-project --severity-threshold=medium
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        run: |
-          set +e
-          snyk test --maven-aggregate-project --severity-threshold=medium --json > snyk-result.json
-          code=$?
-          set -e
-          # 0 = no vulns, 1 = vulns found, >=2 = scan error
-          if [ "$code" -ge 2 ]; then
-            cat snyk-result.json
-            exit "$code"
-          fi
-
-          ignored=$(jq '[.vulnerabilities[] | select(.from | map(startswith("io.akka:akka-runtime-dev")) | any)] | length' snyk-result.json)
-          remaining=$(jq '[.vulnerabilities[] | select((.from | map(startswith("io.akka:akka-runtime-dev")) | any) | not)] | length' snyk-result.json)
-          echo "Ignored $ignored issue paths introduced via io.akka:akka-runtime-dev"
-          echo "Remaining issue paths: $remaining"
-          jq -r '.vulnerabilities[] | select((.from | map(startswith("io.akka:akka-runtime-dev")) | any) | not) | "✗ [\(.severity)] \(.id) in \(.packageName)@\(.version)\n  introduced by \(.from | join(" > "))"' snyk-result.json
-          [ "$remaining" -eq 0 ]
