@@ -49,6 +49,22 @@ spec:
         key: token
         name: pulse-test
   image: docker.io/efgpinto/pulse-core:netpol-1
+  # Custom labels/annotations are disabled by default on the platform; Akka Support must
+  # enable them for the project before apply accepts these. Labels/annotations are NOT
+  # forwarded to telemetry on their own: each key must be opted in below via
+  # telemetry.resourceAttributes, and must exist in exactly one of labels or annotations.
+  # Keys with reserved OTel prefixes (service., telemetry., otel., k8s., process.) are
+  # rejected. Verify in Grafana / New Relic that metrics and traces carry them.
+  labels:
+    team: synthetic-testing
+    tier: core
+  annotations:
+    contact: hello@example.com
+  telemetry:
+    resourceAttributes:
+    - team
+    - tier
+    - contact
   resources:
     autoscaling:
       minInstances: 1
@@ -81,6 +97,16 @@ resource: Service
 resourceVersion: v1
 spec:
   image: docker.io/efgpinto/pulse-peer:netpol-1
+  labels:
+    team: synthetic-testing
+    tier: peer
+  annotations:
+    contact: hello@example.com
+  telemetry:
+    resourceAttributes:
+    - team
+    - tier
+    - contact
   resources:
     autoscaling:
       minInstances: 1
