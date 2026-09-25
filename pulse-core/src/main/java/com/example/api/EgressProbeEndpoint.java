@@ -24,18 +24,19 @@ public class EgressProbeEndpoint extends AbstractHttpEndpoint {
   }
 
   /**
-   * Probes http://{host}:{port}{path}. Query parameters: host (default portquiz.net),
-   * port (default 80), path (default /).
+   * Probes {scheme}://{host}:{port}{path}. Query parameters: scheme (http, default, or
+   * https), host (default portquiz.net), port (default 80), path (default /).
    */
   @Get("/egress")
   public EgressProbeResult egress() {
     var params = requestContext().queryParams();
+    var scheme = params.getString("scheme").orElse("http");
     var host = params.getString("host").orElse("portquiz.net");
     var port = params.getInteger("port").orElse(80);
     var path = params.getString("path").orElse("/");
-    var target = "http://" + host + ":" + port + path;
+    var target = scheme + "://" + host + ":" + port + path;
     try {
-      var response = httpClientProvider.httpClientFor("http://" + host + ":" + port)
+      var response = httpClientProvider.httpClientFor(scheme + "://" + host + ":" + port)
           .GET(path)
           .responseBodyAs(String.class)
           .invoke();
