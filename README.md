@@ -32,6 +32,7 @@ itself one of the platform features under test.
 | SyntheticRecordStreamProducer | Consumer + Service Stream | Publish record events cross-service (`synthetic-records`) |
 | InternalPingEndpoint | HTTP Endpoint | ACL-restricted target, callable only by pulse-peer |
 | EgressProbeEndpoint | HTTP Endpoint | Outbound connectivity probe for egress network policy validation |
+| WebSocketEndpoint | HTTP Endpoint (WebSocket) | Echo and ticker WebSocket flows plus per-instance connection stats, for connection capacity tests |
 
 pulse-peer components: shared health check (from pulse-common), `StreamProbeConsumer` +
 `StreamCounterEntity` (consume the `synthetic-records` stream), and `PeerProbeEndpoint`
@@ -186,6 +187,44 @@ curl "http://localhost:9000/pulse/probes/egress?port=666"
 # Arbitrary target
 curl "http://localhost:9000/pulse/probes/egress?host=example.com&port=8080&path=/status"
 ```
+
+### WebSocket Probes
+
+Two WebSocket flows and a per-instance stats endpoint, used to answer "how many WebSocket
+connections can one instance hold in parallel". Counters are per instance because a WebSocket
+is pinned to the instance that accepted it; `instanceId` (the pod name when deployed) tells
+you which replica answered. Full method and measured results in
+[docs/websocket-capacity.md](docs/websocket-capacity.md).
+
+```shell
+# Echo: every text message is sent back unchanged (needs a WebSocket client, e.g. websocat)
+websocat ws://localhost:9000/pulse/ws/echo
+
+# Ticker: server push of one JSON tick per interval (1..60 s), client messages are ignored
+websocat ws://localhost:9000/pulse/ws/ticker/1
+
+# Per-instance stats: open, peak, totals, messages in/out
+curl http://localhost:9000/pulse/ws/stats
+
+# Clear peak and totals before a new load run (open connections stay counted)
+curl -X POST http://localhost:9000/pulse/ws/stats/reset
+```
+
+Load generator (JDK 21 single-file program, no build step). Opens N connections, holds them,
+pings each one on an interval and reports handshake latency, echo round-trip latency, open
+failures and connections the server closed on its own:
+
+```shell
+java tools/ws-load/WsLoad.java --url ws://localhost:9000/pulse/ws/echo \
+  --connections 1000 --concurrency 50 --hold 30 --ping-interval 5
+
+# Against the ticker flow (no pings, just count received ticks)
+java tools/ws-load/WsLoad.java --url ws://localhost:9000/pulse/ws/ticker/5 \
+  --connections 200 --hold 30 --ping-interval 0
+```
+
+Deployed services need `enableWebSockets: true` on the route (see `deploy/project-full.yaml`),
+otherwise the platform answers `403`. The flag downgrades that route to HTTP/1.1.
 
 ### JWT Endpoint (disabled by default)
 

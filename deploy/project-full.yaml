@@ -86,7 +86,11 @@ resourceVersion: v1
 spec:
   host: quiet-rain-1815.aws-us-east-2.apps.akka.dev
   routes:
+  # enableWebSockets is required for the WebSocket probes under /pulse/ws (without it the
+  # platform answers 403). It downgrades this route to HTTP/1.1, which is acceptable for a
+  # synthetic test service; a production service should put WebSockets on a separate route.
   - prefix: /
+    enableWebSockets: true
     route:
       service: pulse-core
   tls: {}

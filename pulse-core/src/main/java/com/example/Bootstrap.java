@@ -8,6 +8,7 @@ import com.example.application.PulseTopicSettings;
 import com.example.common.application.SecretLoader;
 import com.example.application.SyntheticTopicConsumer;
 import com.example.application.SyntheticTopicProducer;
+import com.example.application.WebSocketConnectionTracker;
 import com.typesafe.config.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +23,7 @@ public class Bootstrap implements ServiceSetup {
 
   private final PulseTopicSettings topicSettings;
   private final SecretLoader secretLoader;
+  private final WebSocketConnectionTracker webSocketTracker;
   private final boolean topicEnabled;
 
   public Bootstrap(Config appConfig) {
@@ -31,6 +33,8 @@ public class Bootstrap implements ServiceSetup {
     logger.info("Secret probe env-prefix={} file-dir={} dotenv-file={}",
         secretLoader.envPrefix(), secretLoader.fileDir(), secretLoader.dotenvFile());
     this.topicEnabled = appConfig.getBoolean("pulse.topic.enabled");
+    this.webSocketTracker = WebSocketConnectionTracker.forThisInstance();
+    logger.info("WebSocket tracker instance id: {}", webSocketTracker.snapshot().instanceId());
   }
 
   @Override
@@ -67,6 +71,9 @@ public class Bootstrap implements ServiceSetup {
         }
         if (clazz == SecretLoader.class) {
           return (T) secretLoader;
+        }
+        if (clazz == WebSocketConnectionTracker.class) {
+          return (T) webSocketTracker;
         }
         throw new RuntimeException("No such dependency found: " + clazz);
       }
