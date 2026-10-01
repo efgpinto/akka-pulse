@@ -31,3 +31,6 @@ akka-context/
 
 # Local environment variables (may contain secrets)
 .env
+
+# Multi-region probe output (scripts/mr-*.sh)
+results/

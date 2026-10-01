@@ -145,6 +145,50 @@ region converge within SC-001 (5s). Hit both region hosts to reach ≥100 ops/se
 
 ---
 
+## G. Assumption probes (US8)
+
+The probes under `/pulse/probe/...` name the region where each handler ran (`handledIn`), and
+the endpoint adds `callMicros`, the component call time inside the service. Results of the
+2026-09 two-region run: `results-2026-09.md`.
+
+Deploy with a descriptor that sets the primary selection mode explicitly:
+
+```shell
+akka services apply -f deploy/multi-region/pulse-core-request-region.yaml   # or -pinned-region, -none
+```
+
+A route created while the project has one region keeps that region's hostname. After adding a
+region, create a regional route for it with the hostname generated there:
+
+```shell
+akka project hostnames list
+akka routes create pulse-core-<region> --hostname <generated hostname in that region> \
+  --path /=pulse-core --region <region>
+```
+
+Under `request-region`, first writes to new entities fail for minutes after a deploy, restart or
+region add. Wait for them to settle before measuring:
+
+```shell
+scripts/mr-settle.sh 20 https://<region-a-host> https://<region-b-host>
+```
+
+Run the probes (H1-H11), writing raw responses to `results/<run-id>/`:
+
+```shell
+scripts/mr-probe.sh https://<region-a-host> https://<region-b-host> <run-id>
+```
+
+Late-region scenario (H13): seed a single-region deploy, add a region, then check:
+
+```shell
+scripts/mr-late-region.sh seed https://<region-a-host> <run-id>
+akka projects regions add <region-b>
+scripts/mr-late-region.sh check https://<region-a-host> https://<region-b-host> <run-id>
+```
+
+---
+
 ## Success criteria checks
 
 | SC | Check |

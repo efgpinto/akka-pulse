@@ -1,0 +1,16 @@
+# pulse-core for the multi-region probes (spec 002, US8), primary selection mode: request-region.
+# Apply with: akka services apply -f deploy/multi-region/pulse-core-request-region.yaml
+# Set the image tag to the pushed build before applying.
+name: pulse-core
+service:
+  image: docker.io/efgpinto/pulse-core:mr-probe-3
+  resources:
+    autoscaling:
+      minInstances: 2
+    instanceType: g1.general.x-small
+    runtime:
+      mode: embedded
+  replication:
+    mode: replicated-read
+    replicatedRead:
+      primarySelectionMode: request-region

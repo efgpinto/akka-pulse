@@ -1,0 +1,11 @@
+# pulse-peer for the multi-region stream probe (spec 002, US8, H2).
+# Apply with: akka services apply -f deploy/multi-region/pulse-peer.yaml
+name: pulse-peer
+service:
+  image: docker.io/efgpinto/pulse-peer:mr-probe-2
+  resources:
+    autoscaling:
+      minInstances: 1
+    instanceType: g1.general.x-small
+    runtime:
+      mode: embedded

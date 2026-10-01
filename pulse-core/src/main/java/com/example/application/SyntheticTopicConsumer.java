@@ -23,6 +23,13 @@ public class SyntheticTopicConsumer extends Consumer {
     componentClient.forKeyValueEntity(COUNTER_ID)
         .method(TopicMessageCounterEntity::increment)
         .invoke(new TopicMessageCounterEntity.IncrementCommand(message.originRegion()));
+
+    // Multi-region probe (spec 002, US8): record what hasLocalOrigin() reports for a topic message.
+    var context = messageContext();
+    componentClient.forKeyValueEntity("topic-" + context.selfRegion())
+        .method(ProbeLedgerEntity::record)
+        .invoke(new ProbeLedgerEntity.RecordCommand(
+            context.originRegion().orElse(""), context.hasLocalOrigin(), context.selfRegion()));
     return effects().done();
   }
 }

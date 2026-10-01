@@ -51,8 +51,12 @@ an SDK config key, it is a service-descriptor / project setting.
 | Key Value Entity | `commandContext().selfRegion()` |
 | Consumer | `messageContext().selfRegion()`, `originRegion()`, `hasLocalOrigin()` |
 | View (TableUpdater) | `updateContext().originRegion()`, `hasLocalOrigin()` |
-| **HTTP Endpoint** | **no documented region API** |
-| **Workflow** | **no documented region API** |
+| HTTP Endpoint | `requestContext().selfRegion()` (`AbstractHttpEndpoint`) |
+| Workflow | `commandContext().selfRegion()`, or `WorkflowContext.selfRegion()` injected in the constructor |
+
+**Update (2026-09)**: every component context now extends `akka.javasdk.Context`, which has
+`selfRegion()`. `InternalPingEndpoint` and `RegionProbeEndpoint` use `requestContext().selfRegion()`.
+The rationale below is kept as the original decision record.
 
 **Rationale**: FR-014 requires the health endpoint to report the current region.
 HTTP endpoints have **no** documented self-region accessor (`RequestContext` exposes

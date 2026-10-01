@@ -24,6 +24,13 @@ public class StreamProbeConsumer extends Consumer {
     componentClient.forKeyValueEntity("synthetic-records")
         .method(StreamCounterEntity::increment)
         .invoke();
+
+    // Multi-region probe (spec 002, US8): count per consuming region, split by hasLocalOrigin().
+    var context = messageContext();
+    var origin = context.hasLocalOrigin() ? "local" : "remote";
+    componentClient.forKeyValueEntity("stream-" + context.selfRegion() + "-" + origin)
+        .method(StreamCounterEntity::increment)
+        .invoke();
     return effects().done();
   }
 }

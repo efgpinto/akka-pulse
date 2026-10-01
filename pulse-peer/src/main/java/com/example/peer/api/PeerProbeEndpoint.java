@@ -7,6 +7,7 @@ import akka.javasdk.client.ComponentClient;
 import akka.javasdk.http.HttpClientProvider;
 import com.example.common.api.HealthEndpoint;
 import com.example.peer.application.StreamCounterEntity;
+import com.example.peer.domain.StreamCounter;
 
 import java.time.Instant;
 
@@ -61,6 +62,14 @@ public class PeerProbeEndpoint {
         .method(StreamCounterEntity::get)
         .invoke();
     return new StreamProbeResult("stream", counter.count() > 0, counter.count(), counter.lastEventAt());
+  }
+
+  /** Multi-region probe (spec 002, US8): read a per-region stream counter by id. */
+  @Get("/stream/{counterId}")
+  public StreamCounter streamCounter(String counterId) {
+    return componentClient.forKeyValueEntity(counterId)
+        .method(StreamCounterEntity::get)
+        .invoke();
   }
 
   @Get("/restricted")

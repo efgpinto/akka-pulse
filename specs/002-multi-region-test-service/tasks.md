@@ -162,7 +162,24 @@ shows one message per event in origin-only mode; switch to every-region mode and
 - [X] T031 [P] Author AL-9 validation (FR-006): observe `SyntheticTimedAction` cross-region execution — timer fires in the expected region with no duplicate execution — in `specs/002-multi-region-test-service/quickstart.md` (observation only; no documented multi-region guarantee — see plan.md risks)
 - [X] T032 [P] Author SC-007 throughput validation: drive ≥100 concurrent synthetic operations/sec across both regions using the existing BurstEndpoint (`POST /pulse/burst/`) and record results in `specs/002-multi-region-test-service/quickstart.md`
 - [X] T033 Run `mvn verify` and confirm all new unit/integration tests pass
-- [ ] T034 Walk through `specs/002-multi-region-test-service/quickstart.md` end-to-end on a two-region deploy and record results
+- [X] T034 Walk through the two-region scenarios and record results in `specs/002-multi-region-test-service/results-2026-09.md` (topic scenarios AL-11 to AL-13 not run: no broker on the test project)
+
+---
+
+## Phase 11: User Story 8 - Multi-Region Assumption Probes
+
+**Goal**: Test the multi-region assumptions behind the review checklist (Section R) and the SDK docs on a real two-region deploy.
+
+**Independent Test**: Run `scripts/mr-probe.sh` against both region hosts; every row states where the handler ran.
+
+- [X] T035 [P] [US8] Add probe components: `RegionProbeEntity`, `RegionProbeKve`, `FilteredProbeEntity`, `FilteredProbeKve`, `ProbeLedgerEntity`, `RegionProbeConsumer`, `RegionProbeTimedAction`, `RegionProbeView`, `FilteredProbeView`, `RegionProbeWorkflow` in `pulse-core/src/main/java/com/example/application/`
+- [X] T036 [US8] Add `RegionProbeEndpoint` (`/pulse/probe/...`) with server-side call timing in `pulse-core/src/main/java/com/example/api/RegionProbeEndpoint.java`
+- [X] T037 [P] [US8] Record `hasLocalOrigin()` per region in `SyntheticTopicConsumer` (ledger `topic-<region>`) and `StreamProbeConsumer` (counter `stream-<region>-local|remote`, read via `GET /peer/probes/stream/{counterId}`)
+- [X] T038 [P] [US8] Tests: `RegionProbeEntityTest`, `RegionProbeConsumerIntegrationTest` (pins `hasLocalOrigin()` == true for an empty origin region), `RegionProbeEndpointIntegrationTest`
+- [X] T039 [P] [US8] Add service descriptors per primary selection mode in `deploy/multi-region/`
+- [X] T040 [P] [US8] Add `scripts/mr-probe.sh` (H1-H11), `scripts/mr-late-region.sh` (H13) and `scripts/mr-settle.sh` (H14)
+- [X] T041 [US8] Run both primary selection modes and the late-region scenario on a two-region deployment; record results in `specs/002-multi-region-test-service/results-2026-09.md`
+- [ ] T042 [US8] Optional: H12, pending timers and paused workflows across `down-region` / `bring-up-region`
 
 ---
 
