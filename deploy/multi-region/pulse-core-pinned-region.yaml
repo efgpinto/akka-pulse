@@ -3,7 +3,7 @@
 # Set the image tag to the pushed build before applying.
 name: pulse-core
 service:
-  image: docker.io/efgpinto/pulse-core:mr-probe-3
+  image: docker.io/efgpinto/pulse-core:mr-probe-4
   resources:
     autoscaling:
       minInstances: 2
