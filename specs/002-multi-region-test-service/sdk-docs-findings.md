@@ -101,18 +101,34 @@ Findings are ordered by impact. Each has a proposed change.
 
   Change "entire cluster" to "within a region".
 
-### D6. Workflow multi-region behaviour is only on an operations page (medium)
+### D6. Workflow multi-region behaviour, including failover, is not on the SDK pages (high)
 
 - **Where**: `sdk/pages/workflows.adoc:361-362` includes the generic partial.
   `operations/pages/operator-best-practices.adoc:18` is the only page that says a Workflow keeps
   its primary in the creating region.
 - **Problem**: the SDK Workflow page does not say that:
-  - the primary stays in the creating region in both modes
+  - the primary stays in the creating region in both modes, while all regions are healthy
   - commands from other regions are forwarded there
-  - step and pause timers fire only there
-- **Evidence**: Test H6 (a signal sent to B was handled in A, 66-203 ms; pause timeouts fired in A,
-  also for a workflow created before a region add).
+  - steps, step timeouts, pause timeouts and the workflow timeout run only there
+  - the primary moves only when an operator marks that region down
+    (`akka project settings down-region`)
+
+  It also does not say what happens on that failover:
+  - a surviving region takes over and resumes a running workflow
+  - a step that was in flight in the lost region can run again in the survivor, so a third-party
+    call in a step can happen twice
+  - a paused workflow's pause timeout and the workflow timeout were timers in the lost region, and
+    they do not fire in the survivor
+  - under `pinned-region`, the new primary is the region given with `down-region`
+- **Evidence**:
+  - Test H6 (a signal sent to B was handled in A, 66-203 ms; pause timeouts fired in A, also for
+    a workflow created before a region add).
+  - Failover behaviour comes from the runtime's own tests and has not yet been tested on a
+    deployment (H12, `scripts/mr-failover.sh`).
 - **Proposed**: a Workflow-specific replication section instead of, or after, the shared partial.
+  It should cover the primary region, failover through `down-region`, the at-least-once
+  execution of steps across a failover (use idempotency keys for third-party calls), and timers
+  that do not move.
 
 ### D7. The pinned-region illustration shows request-region primaries (medium)
 
@@ -204,8 +220,10 @@ Findings are ordered by impact. Each has a proposed change.
 - `reference/pages/descriptors/service-descriptor.adoc:391` shows `PrimarySelectionMode`;
   `setup.adoc` and the CLI use `primarySelectionMode`.
 - `sdk/partials/mutli-region-replication.adoc`: file name typo ("mutli").
-- `ROOT/pages/akka-orchestration.adoc:47` says Workflows run "active-active" with failover. Each
-  Workflow has one primary, in the creating region; commands forwarded to a lost region fail.
+- `ROOT/pages/akka-orchestration.adoc:47` says Workflows run "active-active" across regions,
+  with failover that "prevents duplicate side effects". Each Workflow has one primary, in the
+  creating region. Failover needs an operator `down-region`, and a step in flight at that moment
+  can run again in the new region (D6).
 - `operations/pages/regions/setup.adoc:70-72`: in `none` mode, writes fail with the generic
   `Unexpected error` (HTTP 500). The page should say what the caller sees. Test OP-B.
 

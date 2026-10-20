@@ -179,6 +179,16 @@ Run the probes (H1-H11), writing raw responses to `results/<run-id>/`:
 scripts/mr-probe.sh https://<region-a-host> https://<region-b-host> <run-id>
 ```
 
+Workflow failover (H12): start a running and a paused workflow in region A, mark A down while
+the running workflow is still in its step, then check from region B:
+
+```shell
+scripts/mr-failover.sh setup https://<region-a-host> <run-id>
+akka project settings down-region <region-a> <region-b>
+scripts/mr-failover.sh check https://<region-a-host> https://<region-b-host> <run-id>
+akka project settings bring-up-region <region-a>
+```
+
 Late-region scenario (H13): seed a single-region deploy, add a region, then check:
 
 ```shell

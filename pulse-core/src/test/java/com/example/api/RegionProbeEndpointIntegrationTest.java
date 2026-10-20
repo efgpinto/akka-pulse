@@ -79,7 +79,7 @@ public class RegionProbeEndpointIntegrationTest extends TestKitSupport {
   public void workflowRecordsRegionOfStartStepSignalAndTimeout() {
     var region = region();
     httpClient.POST("/pulse/probe/workflow/it-wf/start")
-        .withRequestBody(new RegionProbeWorkflow.StartCommand(3))
+        .withRequestBody(new RegionProbeWorkflow.StartCommand(3, 0))
         .invoke();
 
     Awaitility.await()
@@ -101,6 +101,10 @@ public class RegionProbeEndpointIntegrationTest extends TestKitSupport {
           assertThat(state.signalsHandledIn()).containsExactly(region);
           assertThat(state.timeoutFiredIn()).isEqualTo(region);
         });
+
+    // The step ran once, in this region.
+    assertThat(get("/pulse/probe/ledger/wf-step-it-wf-" + region, ProbeLedger.class).count())
+        .isEqualTo(1);
   }
 
   private RegionProbeWorkflow.ProbeWorkflowReply status() {

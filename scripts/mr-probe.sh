@@ -171,7 +171,7 @@ done
 
 # --- H6: workflow primary ---
 wid="h6-$RUN"
-req POST "$A/pulse/probe/workflow/$wid/start" '{"pauseSeconds":600}'; started=$(field .handledIn)
+req POST "$A/pulse/probe/workflow/$wid/start" '{"pauseSeconds":600,"stepDelaySeconds":0}'; started=$(field .handledIn)
 for _ in $(seq 1 50); do
   req GET "$A/pulse/probe/workflow/$wid"; [[ "$(field .state.status)" == "PAUSED" ]] && break; sleep 0.2
 done

@@ -31,7 +31,7 @@ client round-trip. Client times include about 350 ms of round-trip from the test
 | H11 | Replication lag A to B | About 60-100 ms above a local read (client times 409-646 ms vs about 350 ms round-trip). |
 | H13 | A region added to a project with running services and data | See section H13. Existing state, Views and workflows reach the new region. The new region's Consumers process the full event history. |
 | H14 | Entity creation during a deploy, restart or region add | Request-region: first writes to new entities fail in all regions for minutes. Pinned: only the restarting non-primary region is affected, for about 1 minute. See section H14. |
-| H12 | Pending timers in a downed region | Not run (`down-region` not exercised). Timer locality is covered by H3 and H13. |
+| H12 | Workflow failover when its primary region is marked down | Not run. The probe workflow now counts step executions per region (`wf-step-<workflowId>-<region>`) and has a step delay; `scripts/mr-failover.sh` runs the scenario. Blocked: replication between `aws-us-east-2` and `gcp-us-east1` on the test environment has failed since 2026-10-13 (see Status). |
 
 ## H13: late region
 
@@ -77,6 +77,14 @@ local region do not wait, which is why they kept working.
   error does not say the service is read-only. Rolling out `none` took about 7 minutes.
 - **OP-C**: `akka projects regions remove` has no non-interactive confirmation flag; the prompt
   defaults to "No".
+
+## Status after the run
+
+- 2026-10-13 to 2026-10-20: on project 1, `aws-us-east-2` reports "Error connecting to remote
+  region" for resource sync to `gcp-us-east1`. An ESE written in `aws-us-east-2` did not reach
+  `gcp-us-east1` (checked 2026-10-14 and 2026-10-20, read after 57 s and 73 s). A service update
+  applied through the primary reached only `aws-us-east-2`. Another project with the same region
+  pair shows the same sync error, so the cause is the environment, not the service.
 
 ## Raw data
 

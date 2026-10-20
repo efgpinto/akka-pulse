@@ -43,7 +43,7 @@ if [[ $MODE == seed ]]; then
   done
   req POST "$A/pulse/probe/kve/h13-kve-$RUN" '{"value":"v1","withTimer":false}'
   req POST "$A/pulse/probe/filtered-ese/h13-filtered-$RUN" '{"value":"v1","withTimer":false}'
-  req POST "$A/pulse/probe/workflow/h13-wf-$RUN/start" "{\"pauseSeconds\":$WF_PAUSE}"
+  req POST "$A/pulse/probe/workflow/h13-wf-$RUN/start" "{\"pauseSeconds\":$WF_PAUSE,\"stepDelaySeconds\":0}"
   req POST "$A/pulse/probe/timer/h13-timer-$RUN" "{\"delaySeconds\":$TIMER_DELAY}"
   sleep 5
   for l in consumer-unguarded consumer-guarded timer-endpoint; do

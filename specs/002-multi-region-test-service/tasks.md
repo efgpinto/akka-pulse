@@ -179,7 +179,8 @@ shows one message per event in origin-only mode; switch to every-region mode and
 - [X] T039 [P] [US8] Add service descriptors per primary selection mode in `deploy/multi-region/`
 - [X] T040 [P] [US8] Add `scripts/mr-probe.sh` (H1-H11), `scripts/mr-late-region.sh` (H13) and `scripts/mr-settle.sh` (H14)
 - [X] T041 [US8] Run both primary selection modes and the late-region scenario on a two-region deployment; record results in `specs/002-multi-region-test-service/results-2026-09.md`
-- [ ] T042 [US8] Optional: H12, pending timers and paused workflows across `down-region` / `bring-up-region`
+- [X] T042 [P] [US8] Count step executions per region in `RegionProbeWorkflow` (ledger `wf-step-<workflowId>-<region>`), add a step delay, and add `scripts/mr-failover.sh`
+- [ ] T043 [US8] Run H12: workflow failover across `down-region` / `bring-up-region` (running and paused workflows, step executions, timers); blocked until replication on the test environment works
 
 ---
 
